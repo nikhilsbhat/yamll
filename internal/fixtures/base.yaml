@@ -1,0 +1,10 @@
+default: &default
+  apiVersion: v1
+  kind: ConfigMap
+  metadata:
+    name: base-config
+  data:
+    key1: value1
+    key2: value2
+
+config1: *default

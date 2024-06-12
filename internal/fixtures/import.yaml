@@ -1,0 +1,11 @@
+##++internal/fixtures/base.yaml
+##++internal/fixtures/base2.yaml
+#++path/to/test.yaml
+#++https://test.com/test.yaml;auth:{user:username,password:pass,ca:ca_content}
+#++https://test.com/test.yaml;auth:{user:username,password:pass,ca:ca_content}
+default: &default
+  data:
+    key2: override-value
+    key3: value3
+
+config2: *default
