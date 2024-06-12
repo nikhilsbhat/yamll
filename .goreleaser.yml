@@ -12,12 +12,12 @@ builds:
       - -trimpath
     ldflags:
       - -s -w
-        -X github.com/nikhilsbhat/yamllr/version.Version={{.Version}}
-        -X github.com/nikhilsbhat/yamllr/version.Env={{.Env.BUILD_ENVIRONMENT}}
-        -X github.com/nikhilsbhat/yamllr/version.BuildDate={{.Date}}
-        -X github.com/nikhilsbhat/yamllr/version.Revision={{.Commit}}
-        -X github.com/nikhilsbhat/yamllr/version.GoVersion={{.Env.GOVERSION}}
-        -X github.com/nikhilsbhat/yamllr/version.Platform={{ .Os }}/{{ .Arch }}
+        -X github.com/nikhilsbhat/yamll/version.Version={{.Version}}
+        -X github.com/nikhilsbhat/yamll/version.Env={{.Env.BUILD_ENVIRONMENT}}
+        -X github.com/nikhilsbhat/yamll/version.BuildDate={{.Date}}
+        -X github.com/nikhilsbhat/yamll/version.Revision={{.Commit}}
+        -X github.com/nikhilsbhat/yamll/version.GoVersion={{.Env.GOVERSION}}
+        -X github.com/nikhilsbhat/yamll/version.Platform={{ .Os }}/{{ .Arch }}
     goos:
       - linux
       - darwin
