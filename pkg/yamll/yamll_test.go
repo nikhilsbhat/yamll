@@ -1,7 +1,6 @@
 package yamll_test
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/nikhilsbhat/yamll/pkg/yamll"
@@ -14,7 +13,6 @@ func Test_fetchDependency(t *testing.T) {
 		deps, err := cfg.Yaml()
 		assert.NoError(t, err)
 
-		fmt.Printf(deps)
-		assert.Nil(t, deps)
+		assert.NotNil(t, deps)
 	})
 }

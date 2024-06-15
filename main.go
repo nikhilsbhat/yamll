@@ -17,5 +17,5 @@ func main() {
 		log.Fatal(err)
 	}
 
-	fmt.Printf(yaml)
+	fmt.Printf("%s", yaml)
 }
