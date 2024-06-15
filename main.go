@@ -9,12 +9,13 @@ import (
 )
 
 func main() {
-	cfg := yamll.New(os.Args[1])
+	cfg := yamll.New("DEBUG", os.Args[1])
+	cfg.SetLogger()
 
 	yaml, err := cfg.Yaml()
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	fmt.Println(yaml)
+	fmt.Printf(yaml)
 }

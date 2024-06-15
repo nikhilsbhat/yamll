@@ -3,12 +3,12 @@ package yamll
 import (
 	"bufio"
 	"fmt"
-	"log"
 	"os"
 	"path/filepath"
 	"strings"
 
 	"dario.cat/mergo"
+	"log/slog"
 )
 
 // YamlData holds information of yaml file and its dependency tree.
@@ -23,8 +23,10 @@ type YamlData struct {
 
 // Config holds the information of yaml files to be parsed.
 type Config struct {
-	Files []string
-	Root  bool
+	Files    []string `json:"files,omitempty" yaml:"files,omitempty"`
+	Root     bool     `json:"root,omitempty" yaml:"root,omitempty"`
+	LogLevel string   `json:"log_level,omitempty" yaml:"log_level,omitempty"`
+	log      *slog.Logger
 }
 
 // Yaml identifies the YAML imports and merges them to create a single comprehensive YAML file.
@@ -37,7 +39,7 @@ func (cfg *Config) Yaml() (string, error) {
 
 	var importData string
 
-	finalData, err := MergeData(importData, dependencyRoutes)
+	finalData, err := cfg.MergeData(importData, dependencyRoutes)
 	if err != nil {
 		return "", err
 	}
@@ -99,32 +101,32 @@ func (cfg *Config) ResolveDependencies(routes map[string]*YamlData, yamlFilesPat
 }
 
 // MergeData combines the YAML file data according to the hierarchy.
-func MergeData(src string, data map[string]*YamlData) (string, error) {
+func (cfg *Config) MergeData(src string, data map[string]*YamlData) (string, error) {
 	for file, fileData := range data {
 		if !fileData.Root {
 			continue
 		}
 
-		out, err := Merge(src, data, file)
+		out, err := cfg.Merge(src, data, file)
 		if err != nil {
 			return "", err
 		}
 
 		src = out + "\n" + fileData.DataRaw
-		log.Printf("root file '%s' was imported successfully", file)
+		cfg.log.Debug("root file was imported successfully", slog.String("file", file))
 	}
 
 	return src, nil
 }
 
-func Merge(src string, data map[string]*YamlData, file string) (string, error) {
+func (cfg *Config) Merge(src string, data map[string]*YamlData, file string) (string, error) {
 	for _, dependency := range data[file].Dependency {
 		if data[dependency].Imported {
-			log.Printf("file '%s' already imported hence skipping", dependency)
+			cfg.log.Warn("file already imported hence skipping", slog.String("file", dependency))
 			continue
 		}
 
-		out, err := Merge(src, data, dependency)
+		out, err := cfg.Merge(src, data, dependency)
 		if err != nil {
 			return "", err
 		}
@@ -136,7 +138,7 @@ func Merge(src string, data map[string]*YamlData, file string) (string, error) {
 		src = src + "\n" + data[file].DataRaw
 
 		data[file].Imported = true
-		log.Printf("file '%s' was imported successfully", file)
+		cfg.log.Debug("file was imported successfully", slog.String("file", file))
 	}
 
 	return src, nil
@@ -200,6 +202,6 @@ func getDependencyData(dependency string) string {
 	return string(runeSlice[4:])
 }
 
-func New(path ...string) *Config {
-	return &Config{Files: path}
+func New(logLevel string, path ...string) *Config {
+	return &Config{Files: path, LogLevel: logLevel}
 }
