@@ -9,7 +9,6 @@ import (
 	"strings"
 
 	"dario.cat/mergo"
-	"gopkg.in/yaml.v3"
 )
 
 // YamlData holds information of yaml file and its dependency tree.
@@ -17,8 +16,8 @@ type YamlData struct {
 	Root       bool                   `json:"root,omitempty" yaml:"root,omitempty"`
 	Imported   bool                   `json:"imported,omitempty" yaml:"imported,omitempty"`
 	File       string                 `json:"file,omitempty" yaml:"file,omitempty"`
-	DataRaw    string                 `json:"data_raw,omitempty" yaml:"data_raw,omitempty"`
 	Dependency []string               `json:"dependency,omitempty" yaml:"dependency,omitempty"`
+	DataRaw    string                 `json:"data_raw,omitempty" yaml:"data_raw,omitempty"`
 	Data       map[string]interface{} `json:"data,omitempty" yaml:"data,omitempty"`
 }
 
@@ -36,19 +35,14 @@ func (cfg *Config) Yaml() (string, error) {
 		return "", fmt.Errorf("fetching delendency tree errored with: '%s'", err)
 	}
 
-	var importData map[string]interface{}
+	var importData string
 
 	finalData, err := MergeData(importData, dependencyRoutes)
 	if err != nil {
 		return "", err
 	}
 
-	fileData, err := yaml.Marshal(finalData)
-	if err != nil {
-		return "", fmt.Errorf("marshalling data to YAML errored with: '%v'", err)
-	}
-
-	return string(fileData), nil
+	return finalData, nil
 }
 
 // ResolveDependencies addresses the dependencies of YAML imports specified in the YAML files.
@@ -83,12 +77,12 @@ func (cfg *Config) ResolveDependencies(routes map[string]*YamlData, yamlFilesPat
 			cfg.Root = true
 		}
 
-		var marshalledData map[string]interface{}
-		if err = yaml.Unmarshal(yamlFileData, &marshalledData); err != nil {
-			return nil, err
-		}
+		//var marshalledData map[string]interface{}
+		//if err = yaml.Unmarshal(yamlFileData, &marshalledData); err != nil {
+		//	return nil, err
+		//}
 
-		routes[yamlFilePath] = &YamlData{Root: rootFile, File: yamlFilePath, DataRaw: string(yamlFileData), Data: marshalledData, Dependency: dependencies}
+		routes[yamlFilePath] = &YamlData{Root: rootFile, File: yamlFilePath, DataRaw: string(yamlFileData), Dependency: dependencies}
 
 		if len(dependencies) != 0 {
 			dependencyRoutes, err := cfg.ResolveDependencies(routes, dependencies...)
@@ -96,7 +90,7 @@ func (cfg *Config) ResolveDependencies(routes map[string]*YamlData, yamlFilesPat
 				return nil, err
 			}
 			if err = mergo.Merge(&routes, dependencyRoutes, mergo.WithOverride); err != nil {
-				return nil, fmt.Errorf("error merging YAML files: %v", err)
+				return nil, fmt.Errorf("error merging YAML routes: %v", err)
 			}
 		}
 	}
@@ -105,7 +99,7 @@ func (cfg *Config) ResolveDependencies(routes map[string]*YamlData, yamlFilesPat
 }
 
 // MergeData combines the YAML file data according to the hierarchy.
-func MergeData(src map[string]interface{}, data map[string]*YamlData) (map[string]interface{}, error) {
+func MergeData(src string, data map[string]*YamlData) (string, error) {
 	for file, fileData := range data {
 		if !fileData.Root {
 			continue
@@ -113,21 +107,17 @@ func MergeData(src map[string]interface{}, data map[string]*YamlData) (map[strin
 
 		out, err := Merge(src, data, file)
 		if err != nil {
-			return nil, err
+			return "", err
 		}
 
-		if err = mergo.Merge(&out, fileData.Data, mergo.WithOverride); err != nil {
-			return nil, fmt.Errorf("error merging YAML files: %v", err)
-		}
+		src = out + "\n" + fileData.DataRaw
 		log.Printf("root file '%s' was imported successfully", file)
-
-		src = out
 	}
 
 	return src, nil
 }
 
-func Merge(src map[string]interface{}, data map[string]*YamlData, file string) (map[string]interface{}, error) {
+func Merge(src string, data map[string]*YamlData, file string) (string, error) {
 	for _, dependency := range data[file].Dependency {
 		if data[dependency].Imported {
 			log.Printf("file '%s' already imported hence skipping", dependency)
@@ -136,18 +126,14 @@ func Merge(src map[string]interface{}, data map[string]*YamlData, file string) (
 
 		out, err := Merge(src, data, dependency)
 		if err != nil {
-			return nil, err
+			return "", err
 		}
 
-		if err := mergo.Merge(&src, out, mergo.WithOverride); err != nil {
-			return nil, fmt.Errorf("error merging YAML files: %v", err)
-		}
+		src = out + "\n"
 	}
 
 	if !data[file].Imported && !data[file].Root {
-		if err := mergo.Merge(&src, data[file].Data, mergo.WithOverride); err != nil {
-			return nil, fmt.Errorf("error merging YAML files: %v", err)
-		}
+		src = src + "\n" + data[file].DataRaw
 
 		data[file].Imported = true
 		log.Printf("file '%s' was imported successfully", file)
@@ -155,6 +141,57 @@ func Merge(src map[string]interface{}, data map[string]*YamlData, file string) (
 
 	return src, nil
 }
+
+//func MergeData(src map[string]interface{}, data map[string]*YamlData) (map[string]interface{}, error) {
+//	for file, fileData := range data {
+//		if !fileData.Root {
+//			continue
+//		}
+//
+//		out, err := Merge(src, data, file)
+//		if err != nil {
+//			return nil, err
+//		}
+//
+//		if err = mergo.Merge(&out, fileData.Data, mergo.WithOverride); err != nil {
+//			return nil, fmt.Errorf("error merging YAML files: %v", err)
+//		}
+//		log.Printf("root file '%s' was imported successfully", file)
+//
+//		src = out
+//	}
+//
+//	return src, nil
+//}
+//
+//func Merge(src map[string]interface{}, data map[string]*YamlData, file string) (map[string]interface{}, error) {
+//	for _, dependency := range data[file].Dependency {
+//		if data[dependency].Imported {
+//			log.Printf("file '%s' already imported hence skipping", dependency)
+//			continue
+//		}
+//
+//		out, err := Merge(src, data, dependency)
+//		if err != nil {
+//			return nil, err
+//		}
+//
+//		if err := mergo.Merge(&src, out, mergo.WithOverride); err != nil {
+//			return nil, fmt.Errorf("error merging YAML files: %v", err)
+//		}
+//	}
+//
+//	if !data[file].Imported && !data[file].Root {
+//		if err := mergo.Merge(&src, data[file].Data, mergo.WithOverride); err != nil {
+//			return nil, fmt.Errorf("error merging YAML files: %v", err)
+//		}
+//
+//		data[file].Imported = true
+//		log.Printf("file '%s' was imported successfully", file)
+//	}
+//
+//	return src, nil
+//}
 
 func getDependencyData(dependency string) string {
 	imports := strings.Split(dependency, ";")
