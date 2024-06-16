@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"dario.cat/mergo"
+	"github.com/nikhilsbhat/yamll/pkg/errors"
 	"log/slog"
 )
 
@@ -34,7 +35,7 @@ type Config struct {
 func (cfg *Config) Yaml() (string, error) {
 	dependencyRoutes, err := cfg.ResolveDependencies(make(map[string]*YamlData), cfg.Files...)
 	if err != nil {
-		return "", fmt.Errorf("fetching delendency tree errored with: '%w'", err)
+		return "", &errors.YamllError{Message: fmt.Sprintf("fetching dependency tree errored with: '%v'", err)}
 	}
 
 	var importData string
@@ -62,7 +63,7 @@ func (cfg *Config) ResolveDependencies(routes map[string]*YamlData, yamlFilesPat
 
 		yamlFileData, err := os.ReadFile(absYamlFilePath)
 		if err != nil {
-			return nil, fmt.Errorf("reading YAML dependency errored with: '%w'", err)
+			return nil, &errors.YamllError{Message: fmt.Sprintf("reading YAML dependency errored with: '%v'", err)}
 		}
 
 		dependencies := make([]string, 0)
@@ -89,7 +90,7 @@ func (cfg *Config) ResolveDependencies(routes map[string]*YamlData, yamlFilesPat
 			}
 
 			if err = mergo.Merge(&routes, dependencyRoutes, mergo.WithOverride); err != nil {
-				return nil, fmt.Errorf("error merging YAML routes: %w", err)
+				return nil, &errors.YamllError{Message: fmt.Sprintf("error merging YAML routes: %v", err)}
 			}
 		}
 	}
