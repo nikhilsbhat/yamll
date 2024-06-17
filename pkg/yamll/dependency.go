@@ -32,10 +32,11 @@ type Dependency struct {
 
 // Auth holds the authentication information to resolve the remote yaml files.
 type Auth struct {
-	UserName   string `json:"user_name,omitempty" yaml:"user_name,omitempty" mapstructure:"user_name"`
-	Password   string `json:"password,omitempty" yaml:"password,omitempty" mapstructure:"password"`
-	BarerToken string `json:"barer_token,omitempty" yaml:"barer_token,omitempty" mapstructure:"barer_token"`
-	CaContent  string `json:"ca_content,omitempty" yaml:"ca_content,omitempty" mapstructure:"ca_content"`
+	UserName   string `json:"user_name,omitempty" yaml:"user_name,omitempty"`
+	Password   string `json:"password,omitempty" yaml:"password,omitempty"`
+	BarerToken string `json:"barer_token,omitempty" yaml:"barer_token,omitempty"`
+	CaContent  string `json:"ca_content,omitempty" yaml:"ca_content,omitempty"`
+	SSHKey     string `json:"ssh_key,omitempty" yaml:"ssh_key,omitempty"`
 }
 
 // ResolveDependencies addresses the dependencies of YAML imports specified in the YAML files.
@@ -88,6 +89,7 @@ func (cfg *Config) ResolveDependencies(routes map[string]*YamlData, dependencies
 	return routes, nil
 }
 
+// GetDependencyData reads the imports analyses it and generates Dependency data for it.
 func (cfg *Config) GetDependencyData(dependency string) (*Dependency, error) {
 	imports := strings.Split(dependency, ";")
 	runeSlice := []rune(imports[0])
@@ -114,51 +116,67 @@ func (cfg *Config) GetDependencyData(dependency string) (*Dependency, error) {
 	return dependencyData, nil
 }
 
+// ReadData actually reads the data from the identified import.
 func (dependency *Dependency) ReadData(log *slog.Logger) (string, error) {
 	log.Debug("dependency file type identification", slog.String("type", dependency.Type))
 
 	switch {
 	case dependency.Type == TypeURL:
-		httpClient := resty.New()
-		if len(dependency.Auth.BarerToken) != 0 {
-			httpClient.SetAuthToken(dependency.Auth.BarerToken)
-		}
-
-		if len(dependency.Auth.UserName) != 0 && len(dependency.Auth.Password) != 0 {
-			httpClient.SetBasicAuth(dependency.Auth.UserName, dependency.Auth.Password)
-		}
-
-		if len(dependency.Auth.CaContent) != 0 {
-			certPool := x509.NewCertPool()
-			certPool.AppendCertsFromPEM([]byte(dependency.Auth.CaContent))
-			httpClient.SetTLSClientConfig(&tls.Config{RootCAs: certPool}) //nolint:gosec
-		} else {
-			httpClient.SetTLSClientConfig(&tls.Config{InsecureSkipVerify: true}) //nolint:gosec
-		}
-
-		resp, err := httpClient.R().Get(dependency.Path)
-		if err != nil {
-			return "", err
-		}
-
-		return resp.String(), err
+		return dependency.URL()
 	case dependency.Type == TypeGit:
-		return "", &errors.YamllError{Message: "does not support dependency type 'git' at the moment"}
+		return dependency.Git()
 	case dependency.Type == TypeFile:
-		absYamlFilePath, err := filepath.Abs(dependency.Path)
-		if err != nil {
-			return "", err
-		}
-
-		yamlFileData, err := os.ReadFile(absYamlFilePath)
-		if err != nil {
-			return "", &errors.YamllError{Message: fmt.Sprintf("reading YAML dependency errored with: '%v'", err)}
-		}
-
-		return string(yamlFileData), nil
+		return dependency.File()
 	default:
 		return "", &errors.YamllError{Message: fmt.Sprintf("reading data from of type '%s' is not supported", dependency.Type)}
 	}
+}
+
+// Git reads the data from the Git import.
+func (dependency *Dependency) Git() (string, error) {
+	return "", &errors.YamllError{Message: "does not support dependency type 'git' at the moment"}
+}
+
+// URL reads the data from the URL import.
+func (dependency *Dependency) URL() (string, error) {
+	httpClient := resty.New()
+	if len(dependency.Auth.BarerToken) != 0 {
+		httpClient.SetAuthToken(dependency.Auth.BarerToken)
+	}
+
+	if len(dependency.Auth.UserName) != 0 && len(dependency.Auth.Password) != 0 {
+		httpClient.SetBasicAuth(dependency.Auth.UserName, dependency.Auth.Password)
+	}
+
+	if len(dependency.Auth.CaContent) != 0 {
+		certPool := x509.NewCertPool()
+		certPool.AppendCertsFromPEM([]byte(dependency.Auth.CaContent))
+		httpClient.SetTLSClientConfig(&tls.Config{RootCAs: certPool}) //nolint:gosec
+	} else {
+		httpClient.SetTLSClientConfig(&tls.Config{InsecureSkipVerify: true}) //nolint:gosec
+	}
+
+	resp, err := httpClient.R().Get(dependency.Path)
+	if err != nil {
+		return "", err
+	}
+
+	return resp.String(), err
+}
+
+// File reads the data from the File import.
+func (dependency *Dependency) File() (string, error) {
+	absYamlFilePath, err := filepath.Abs(dependency.Path)
+	if err != nil {
+		return "", err
+	}
+
+	yamlFileData, err := os.ReadFile(absYamlFilePath)
+	if err != nil {
+		return "", &errors.YamllError{Message: fmt.Sprintf("reading YAML dependency errored with: '%v'", err)}
+	}
+
+	return string(yamlFileData), nil
 }
 
 func (dependency *Dependency) identifyType() {

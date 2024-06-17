@@ -9,10 +9,9 @@ import (
 
 // YamlData holds information of yaml file and its dependency tree.
 type YamlData struct {
-	Root     bool   `json:"root,omitempty" yaml:"root,omitempty"`
-	Imported bool   `json:"imported,omitempty" yaml:"imported,omitempty"`
-	File     string `json:"file,omitempty" yaml:"file,omitempty"`
-	/*Dependency  []string               `json:"dependency,omitempty" yaml:"dependency,omitempty"`*/
+	Root       bool                   `json:"root,omitempty" yaml:"root,omitempty"`
+	Imported   bool                   `json:"imported,omitempty" yaml:"imported,omitempty"`
+	File       string                 `json:"file,omitempty" yaml:"file,omitempty"`
 	Dependency []*Dependency          `json:"dependency,omitempty" yaml:"dependency,omitempty"`
 	DataRaw    string                 `json:"data_raw,omitempty" yaml:"data_raw,omitempty"`
 	Data       map[string]interface{} `json:"data,omitempty" yaml:"data,omitempty"`
