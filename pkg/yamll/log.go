@@ -1,10 +1,9 @@
 package yamll
 
 import (
+	"log/slog"
 	"os"
 	"strings"
-
-	"log/slog"
 )
 
 // SetLogger sets yamll logger with desired log level.
@@ -29,4 +28,8 @@ func (cfg *Config) setLogLevel() slog.Level {
 	default:
 		return slog.LevelInfo
 	}
+}
+
+func (cfg *Config) GetLogger() *slog.Logger {
+	return cfg.log
 }

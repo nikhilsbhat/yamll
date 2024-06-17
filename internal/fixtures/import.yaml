@@ -1,9 +1,14 @@
 ##++internal/fixtures/base.yaml
 ##++internal/fixtures/base2.yaml
+##++https://run.mocky.io/v3/92e08b25-dd1f-4dd0-bc55-9649b5b896c9
+#++git+https://github.com/nikhilsbhat/yamll/blob/main/internal/fixtures/base.yaml
 #++path/to/test.yaml
-#++https://test.com/test.yaml;auth:{user:username,password:pass,ca:ca_content}
-#++https://test.com/test.yaml;auth:{user:$username,password:$pass,ca:$ca_content}
+#++https://test.com/test.yaml;{"user_name":"username","password":"pass","ca_content":"ca_content"}
+#++https://test.com/test.yaml;{"user_name":"${username}","password":"${pass}","ca_content":"${ca_content}"}
 
 config2: *default
+
 config3:
   - <<: *default
+
+workflow: *workflows
