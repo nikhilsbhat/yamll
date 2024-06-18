@@ -79,3 +79,28 @@ func TestConfig_ResolveDependencies2(t *testing.T) {
 		fmt.Println(string(out))
 	})
 }
+
+func TestDependency_Git(t *testing.T) {
+	t.Run("", func(t *testing.T) {
+		cfg := yamll.New("DEBUG")
+		cfg.SetLogger()
+
+		t.Setenv("GITHUB_TOKEN", "testkey")
+		dependency := yamll.Dependency{
+			// Path: "git+https://github.com/nikhilsbhat/yamll@main?path=internal/fixtures/base.yaml",
+			Path: "git+ssh://git@github.com:nikhilsbhat/yamll@main?path=internal/fixtures/base.yaml",
+			Type: "",
+			Auth: yamll.Auth{
+				UserName: "nikhilsbhat",
+				// Password: os.Getenv("GITHUB_TOKEN"),
+				SSHKey: "/path/to/ssh/private/key",
+			},
+		}
+
+		out, err := dependency.Git(cfg.GetLogger())
+		assert.NoError(t, err)
+
+		fmt.Println(out)
+		assert.Nil(t, out)
+	})
+}

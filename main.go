@@ -1,21 +1,7 @@
 package main
 
-import (
-	"fmt"
-	"log"
-	"os"
-
-	"github.com/nikhilsbhat/yamll/pkg/yamll"
-)
+import "github.com/nikhilsbhat/yamll/cmd"
 
 func main() {
-	cfg := yamll.New("DEBUG", os.Args[1])
-	cfg.SetLogger()
-
-	yaml, err := cfg.Yaml()
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	fmt.Printf("%s", yaml)
+	cmd.Main()
 }

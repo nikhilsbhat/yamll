@@ -1,7 +1,6 @@
 ##++internal/fixtures/base.yaml
-##++internal/fixtures/base2.yaml
-##++https://run.mocky.io/v3/92e08b25-dd1f-4dd0-bc55-9649b5b896c9
-#++git+https://github.com/nikhilsbhat/yamll/blob/main/internal/fixtures/base.yaml
+##++git+https://github.com/nikhilsbhat/yamll@main?path=internal/fixtures/base2.yaml;{"user_name":"${GIT_USERNAME}","password":"${GITHUB_TOKEN}"}
+##++https://run.mocky.io/v3/e85820ed-2f5d-4633-9509-71fe7f4c007f
 #++path/to/test.yaml
 #++https://test.com/test.yaml;{"user_name":"username","password":"pass","ca_content":"ca_content"}
 #++https://test.com/test.yaml;{"user_name":"${username}","password":"${pass}","ca_content":"${ca_content}"}
@@ -11,4 +10,4 @@ config2: *default
 config3:
   - <<: *default
 
-workflow: *workflows
+workflow: *mysqldatabase

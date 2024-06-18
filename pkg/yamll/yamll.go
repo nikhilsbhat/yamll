@@ -20,13 +20,35 @@ type YamlData struct {
 // Config holds the information of yaml files to be parsed.
 type Config struct {
 	Files    []*Dependency `json:"files,omitempty" yaml:"files,omitempty"`
-	Root     bool          `json:"root,omitempty" yaml:"root,omitempty"`
 	LogLevel string        `json:"log_level,omitempty" yaml:"log_level,omitempty"`
+	Root     bool          `json:"root,omitempty" yaml:"root,omitempty"`
 	log      *slog.Logger
 }
 
 // Yaml identifies the YAML imports and merges them to create a single comprehensive YAML file.
-// These imports function similarly to importing libraries in a programming language.
+// These imports work in a manner similar to importing libraries in a programming language.
+// It searches for the imports defined in any of the following (comments that start with ##++ in your YAML definition).
+// Supports importing from various sources including local files, URLs, and Git.
+// Sample imports look like:
+//
+//	##++internal/fixtures/base2.yaml
+//	##++https://run.mocky.io/v3/92e08b25-dd1f-4dd0-bc55-9649b5b896c9
+//	##++git+https://github.com/nikhilsbhat/yamll@main?path=internal/fixtures/base.yaml
+//	##++git+ssh://git@github.com:nikhilsbhat/yamll@main?path=internal/fixtures/base.yaml
+//	##++git+ssh://git@github.com:nikhilsbhat/yamll@v0.2.5?path=internal/fixtures/base.yaml
+//	##++https://test.com/test.yaml;{"user_name":"${username}","password":"${pass}","ca_content":"${ca_content}"}
+//
+// The parameters necessary for authenticating the remote server in URL/GIT based imports should be defined as shown in the example above.
+// All supported parameters can found under Auth.
+//
+// Authentication parameters, which cannot be directly specified in imports for security reasons, can be replaced with environment variables.
+// To use this feature, define the parameter exposed as an environment variable as $VARIABLE_NAME, as shown in the last example.
+//
+// Breakdown of git repo based import:
+// http based url: ##++git+https://github.com/<org_name>/<repo_name>@<branch/tag>?path=<path/to/file.yaml> ex: ##++git+https://github.com/nikhilsbhat/yamll@main?path=internal/fixtures/base.yaml.
+// ssh based url ##++git+ssh://git@github.com:<org_name>/<repo_name>@<branch/tag>?path=<path/to/file.yaml> ex: ##++git+ssh://git@github.com:nikhilsbhat/yamll@main?path=internal/fixtures/base.yaml.
+//
+//nolint:lll
 func (cfg *Config) Yaml() (string, error) {
 	dependencyRoutes, err := cfg.ResolveDependencies(make(map[string]*YamlData), cfg.Files...)
 	if err != nil {
@@ -42,107 +64,6 @@ func (cfg *Config) Yaml() (string, error) {
 
 	return finalData, nil
 }
-
-// ResolveDependencies addresses the dependencies of YAML imports specified in the YAML files.
-// func (cfg *Config) ResolveDependencies(routes map[string]*YamlData, yamlFilesPath ...string) (map[string]*YamlData, error) {
-//	var rootFile bool
-//	if !cfg.Root {
-//		rootFile = true
-//	}
-//
-//	for fileHierarchy, yamlFilePath := range yamlFilesPath {
-//		absYamlFilePath, err := filepath.Abs(yamlFilePath)
-//		if err != nil {
-//			return nil, err
-//		}
-//
-//		yamlFileData, err := os.ReadFile(absYamlFilePath)
-//		if err != nil {
-//			return nil, &errors.YamllError{Message: fmt.Sprintf("reading YAML dependency errored with: '%v'", err)}
-//		}
-//
-//		dependencies := make([]string, 0)
-//		stringReader := strings.NewReader(string(yamlFileData))
-//
-//		scanner := bufio.NewScanner(stringReader)
-//		for scanner.Scan() {
-//			line := scanner.Text()
-//			if strings.Contains(line, "##++") {
-//				dependencies = append(dependencies, GetDependencyData(line))
-//			}
-//		}
-//
-//		if fileHierarchy == 0 && !cfg.Root {
-//			cfg.Root = true
-//		}
-//
-//		routes[yamlFilePath] = &YamlData{Root: rootFile, File: yamlFilePath, DataRaw: string(yamlFileData)}
-//
-//		if len(dependencies) != 0 {
-//			dependencyRoutes, err := cfg.ResolveDependencies(routes, dependencies...)
-//			if err != nil {
-//				return nil, err
-//			}
-//
-//			if err = mergo.Merge(&routes, dependencyRoutes, mergo.WithOverride); err != nil {
-//				return nil, &errors.YamllError{Message: fmt.Sprintf("error merging YAML routes: %v", err)}
-//			}
-//		}
-//	}
-//
-//	return routes, nil
-// }
-
-// func MergeData(src map[string]interface{}, data map[string]*YamlData) (map[string]interface{}, error) {
-//	for file, fileData := range data {
-//		if !fileData.Root {
-//			continue
-//		}
-//
-//		out, err := Merge(src, data, file)
-//		if err != nil {
-//			return nil, err
-//		}
-//
-//		if err = mergo.Merge(&out, fileData.Data, mergo.WithOverride); err != nil {
-//			return nil, fmt.Errorf("error merging YAML files: %v", err)
-//		}
-//		log.Printf("root file '%s' was imported successfully", file)
-//
-//		src = out
-//	}
-//
-//	return src, nil
-// }
-//
-// func Merge(src map[string]interface{}, data map[string]*YamlData, file string) (map[string]interface{}, error) {
-//	for _, dependency := range data[file].Dependency {
-//		if data[dependency].Imported {
-//			log.Printf("file '%s' already imported hence skipping", dependency)
-//			continue
-//		}
-//
-//		out, err := Merge(src, data, dependency)
-//		if err != nil {
-//			return nil, err
-//		}
-//
-//		if err := mergo.Merge(&src, out, mergo.WithOverride); err != nil {
-//			return nil, fmt.Errorf("error merging YAML files: %v", err)
-//		}
-//	}
-//
-//	if !data[file].Imported && !data[file].Root {
-//		if err := mergo.Merge(&src, data[file].Data, mergo.WithOverride); err != nil {
-//			return nil, fmt.Errorf("error merging YAML files: %v", err)
-//		}
-//
-//		data[file].Imported = true
-//		log.Printf("file '%s' was imported successfully", file)
-//	}
-//
-//	return src, nil
-// }
 
 // New returns new instance of Config with passed parameters.
 func New(logLevel string, paths ...string) *Config {
