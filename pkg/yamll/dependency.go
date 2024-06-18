@@ -24,7 +24,7 @@ import (
 )
 
 const (
-	TypeURL               = "https"
+	TypeURL               = "http"
 	TypeGit               = "git+"
 	TypeFile              = "file"
 	defaultDirPermissions = 0o755
@@ -137,15 +137,15 @@ func (cfg *Config) GetDependencyData(dependency string) (*Dependency, error) {
 
 // ReadData actually reads the data from the identified import.
 func (dependency *Dependency) ReadData(log *slog.Logger) (string, error) {
-	log.Debug("dependency file type identification", slog.String("type", dependency.Type))
+	log.Debug("dependency file type identified", slog.String("type", dependency.Type))
 
 	switch {
 	case dependency.Type == TypeURL:
-		return dependency.URL()
+		return dependency.URL(log)
 	case dependency.Type == TypeGit:
 		return dependency.Git(log)
 	case dependency.Type == TypeFile:
-		return dependency.File()
+		return dependency.File(log)
 	default:
 		return "", &errors.YamllError{Message: fmt.Sprintf("reading data from of type '%s' is not supported", dependency.Type)}
 	}
@@ -229,21 +229,30 @@ func (dependency *Dependency) Git(log *slog.Logger) (string, error) {
 }
 
 // URL reads the data from the URL import.
-func (dependency *Dependency) URL() (string, error) {
+func (dependency *Dependency) URL(log *slog.Logger) (string, error) {
 	httpClient := resty.New()
+
 	if len(dependency.Auth.BarerToken) != 0 {
+		log.Debug("using token based auth for remote URL", slog.Any("url", dependency.Path))
+
 		httpClient.SetAuthToken(dependency.Auth.BarerToken)
 	}
 
 	if len(dependency.Auth.UserName) != 0 && len(dependency.Auth.Password) != 0 {
+		log.Debug("using basic auth for remote URL", slog.Any("url", dependency.Path))
+
 		httpClient.SetBasicAuth(dependency.Auth.UserName, dependency.Auth.Password)
 	}
 
 	if len(dependency.Auth.CaContent) != 0 {
+		log.Debug("using CA for authentication for remote URL", slog.Any("url", dependency.Path))
+
 		certPool := x509.NewCertPool()
 		certPool.AppendCertsFromPEM([]byte(dependency.Auth.CaContent))
 		httpClient.SetTLSClientConfig(&tls.Config{RootCAs: certPool}) //nolint:gosec
 	} else {
+		log.Debug("skipping TLS verification")
+
 		httpClient.SetTLSClientConfig(&tls.Config{InsecureSkipVerify: true}) //nolint:gosec
 	}
 
@@ -256,7 +265,7 @@ func (dependency *Dependency) URL() (string, error) {
 }
 
 // File reads the data from the File import.
-func (dependency *Dependency) File() (string, error) {
+func (dependency *Dependency) File(_ *slog.Logger) (string, error) {
 	absYamlFilePath, err := filepath.Abs(dependency.Path)
 	if err != nil {
 		return "", err

@@ -1,6 +1,6 @@
 ##++internal/fixtures/base.yaml
 ##++git+https://github.com/nikhilsbhat/yamll@main?path=internal/fixtures/base2.yaml;{"user_name":"${GIT_USERNAME}","password":"${GITHUB_TOKEN}"}
-##++https://run.mocky.io/v3/e85820ed-2f5d-4633-9509-71fe7f4c007f
+##++http://localhost:3000/database.yaml
 #++path/to/test.yaml
 #++https://test.com/test.yaml;{"user_name":"username","password":"pass","ca_content":"ca_content"}
 #++https://test.com/test.yaml;{"user_name":"${username}","password":"${pass}","ca_content":"${ca_content}"}
