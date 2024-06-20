@@ -8,6 +8,7 @@ import (
 type Config struct {
 	Files        []string
 	NoValidation bool
+	Explode      bool
 	ToFile       string
 }
 
@@ -21,4 +22,6 @@ func registerCommonFlags(cmd *cobra.Command) {
 		"root yaml files to be used for importing")
 	cmd.PersistentFlags().BoolVarP(&cliCfg.NoValidation, "no-validation", "", false,
 		"when enabled it skips validating the final generated yaml file")
+	cmd.PersistentFlags().BoolVarP(&cliCfg.Explode, "explode", "", false,
+		"when enabled, it expands any aliases and anchor tags present")
 }

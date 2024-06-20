@@ -27,6 +27,8 @@ type Config struct {
 
 type YamlRoutes map[string]*YamlData
 
+type Yaml string
+
 // Yaml identifies the YAML imports and merges them to create a single comprehensive YAML file.
 // These imports work in a manner similar to importing libraries in a programming language.
 // It searches for the imports defined in any of the following (comments that start with ##++ in your YAML definition).
@@ -51,7 +53,7 @@ type YamlRoutes map[string]*YamlData
 // ssh based url ##++git+ssh://git@github.com:<org_name>/<repo_name>@<branch/tag>?path=<path/to/file.yaml> ex: ##++git+ssh://git@github.com:nikhilsbhat/yamll@main?path=internal/fixtures/base.yaml.
 //
 //nolint:lll
-func (cfg *Config) Yaml() (string, error) {
+func (cfg *Config) Yaml() (Yaml, error) {
 	dependencyRoutes, err := cfg.ResolveDependencies(make(map[string]*YamlData), cfg.Files...)
 	if err != nil {
 		return "", &errors.YamllError{Message: fmt.Sprintf("fetching dependency tree errored with: '%v'", err)}
@@ -64,7 +66,7 @@ func (cfg *Config) Yaml() (string, error) {
 		return "", err
 	}
 
-	return finalData, nil
+	return Yaml(finalData), nil
 }
 
 // New returns new instance of Config with passed parameters.

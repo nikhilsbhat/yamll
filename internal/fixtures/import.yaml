@@ -9,6 +9,7 @@
 config2: *default
 
 config3:
-  - <<: *default
+  - *default
+  - *mysqldatabase
 
 workflow: *mysqldatabase

@@ -8,10 +8,10 @@ import (
 	"os"
 	"strings"
 
+	"github.com/goccy/go-yaml"
 	"github.com/nikhilsbhat/yamll/pkg/yamll"
 	"github.com/nikhilsbhat/yamll/version"
 	"github.com/spf13/cobra"
-	"gopkg.in/yaml.v3"
 )
 
 func getRootCommand() *cobra.Command {
@@ -65,6 +65,16 @@ yamll import --file path/to/file.yaml --no-validation`,
 					logger.Error("rendering the final YAML encountered an error. skip validation to view the broken file.")
 
 					os.Exit(1)
+				}
+			}
+
+			if cliCfg.Explode {
+				explodedOut, err := out.Explode()
+				if err != nil {
+					logger.Error("exploding final YAML errored", slog.Any("error", err))
+					logger.Warn("rendering YAML without exploding, due to above errors")
+				} else {
+					out = explodedOut
 				}
 			}
 
