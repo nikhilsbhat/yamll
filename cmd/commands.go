@@ -8,7 +8,6 @@ import (
 	"os"
 	"strings"
 
-	"github.com/nikhilsbhat/yamll/pkg/errors"
 	"github.com/nikhilsbhat/yamll/pkg/yamll"
 	"github.com/nikhilsbhat/yamll/version"
 	"github.com/spf13/cobra"
@@ -45,7 +44,7 @@ func getRunCommand() *cobra.Command {
 		Short: "Imports defined sub-YAML files as libraries",
 		Long:  "Identifies dependency tree and imports them in the order to generate one single YAML file",
 		Example: `yamll import --file path/to/file.yaml
-yamll import --file path/to/file.yaml --validate`,
+yamll import --file path/to/file.yaml --no-validation`,
 		PreRunE: setCLIClient,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cfg := yamll.New(yamllCfg.LogLevel, cliCfg.Files...)
@@ -63,8 +62,9 @@ yamll import --file path/to/file.yaml --validate`,
 				err = yaml.Unmarshal([]byte(out), &data)
 				if err != nil {
 					logger.Error("the final rendered YAML file is not a valid yaml", slog.Any("error", err))
+					logger.Error("rendering the final YAML encountered an error. skip validation to view the broken file.")
 
-					return &errors.YamllError{Message: "rendering the final YAML encountered an error. skip validation to view the broken file."}
+					os.Exit(1)
 				}
 			}
 

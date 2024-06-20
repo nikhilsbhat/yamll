@@ -13,7 +13,7 @@ func (cfg *Config) SetLogger() {
 		Level:     cfg.setLogLevel(),
 	}
 
-	stdLogger := slog.NewTextHandler(os.Stdout, loggerOpts)
+	stdLogger := slog.NewTextHandler(os.Stderr, loggerOpts)
 	cfg.log = slog.New(stdLogger)
 }
 

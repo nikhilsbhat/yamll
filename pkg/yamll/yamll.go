@@ -10,7 +10,7 @@ import (
 // YamlData holds information of yaml file and its dependency tree.
 type YamlData struct {
 	Root       bool                   `json:"root,omitempty" yaml:"root,omitempty"`
-	Imported   bool                   `json:"imported,omitempty" yaml:"imported,omitempty"`
+	Merged     bool                   `json:"merged,omitempty" yaml:"merged,omitempty"`
 	File       string                 `json:"file,omitempty" yaml:"file,omitempty"`
 	Dependency []*Dependency          `json:"dependency,omitempty" yaml:"dependency,omitempty"`
 	DataRaw    string                 `json:"data_raw,omitempty" yaml:"data_raw,omitempty"`
@@ -24,6 +24,8 @@ type Config struct {
 	Root     bool          `json:"root,omitempty" yaml:"root,omitempty"`
 	log      *slog.Logger
 }
+
+type YamlRoutes map[string]*YamlData
 
 // Yaml identifies the YAML imports and merges them to create a single comprehensive YAML file.
 // These imports work in a manner similar to importing libraries in a programming language.

@@ -1,3 +1,4 @@
+##++internal/fixtures/base3.yaml
 default: &default
   apiVersion: v1
   kind: ConfigMap

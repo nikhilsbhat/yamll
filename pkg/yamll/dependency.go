@@ -9,6 +9,7 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"dario.cat/mergo"
@@ -66,6 +67,10 @@ func (cfg *Config) ResolveDependencies(routes map[string]*YamlData, dependencies
 	}
 
 	for fileHierarchy, dependencyPath := range dependenciesPath {
+		if _, ok := routes[dependencyPath.Path]; ok {
+			continue
+		}
+
 		yamlFileData, err := dependencyPath.ReadData(cfg.log)
 		if err != nil {
 			return nil, &errors.YamllError{Message: fmt.Sprintf("reading YAML file errored with: '%v'", err)}
@@ -75,6 +80,7 @@ func (cfg *Config) ResolveDependencies(routes map[string]*YamlData, dependencies
 		stringReader := strings.NewReader(yamlFileData)
 
 		scanner := bufio.NewScanner(stringReader)
+
 		for scanner.Scan() {
 			line := scanner.Text()
 			if strings.Contains(line, "##++") {
@@ -84,6 +90,8 @@ func (cfg *Config) ResolveDependencies(routes map[string]*YamlData, dependencies
 				}
 
 				dependencies = append(dependencies, dependency)
+				yamlFileData = strings.ReplaceAll(yamlFileData, line, "")
+				yamlFileData = regexp.MustCompile(`[\t\r\n]+`).ReplaceAllString(strings.TrimSpace(yamlFileData), "\n")
 			}
 		}
 
@@ -137,7 +145,7 @@ func (cfg *Config) GetDependencyData(dependency string) (*Dependency, error) {
 
 // ReadData actually reads the data from the identified import.
 func (dependency *Dependency) ReadData(log *slog.Logger) (string, error) {
-	log.Debug("dependency file type identified", slog.String("type", dependency.Type))
+	log.Debug("dependency file type identified", slog.String("type", dependency.Type), slog.Any("path", dependency.Path))
 
 	switch {
 	case dependency.Type == TypeURL:
