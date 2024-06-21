@@ -9,3 +9,4 @@ default: &default
     key2: value2
 
 config1: *default
+#config2: *default

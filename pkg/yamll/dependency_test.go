@@ -26,7 +26,7 @@ func Test_getDependencyData2(t *testing.T) {
 
 		t.Setenv("PASSWORD", "super-secret-password")
 
-		cfg := yamll.New("DEBUG")
+		cfg := yamll.New("DEBUG", "")
 		cfg.SetLogger()
 
 		dependencies := make([]*yamll.Dependency, 0)
@@ -52,7 +52,7 @@ func TestDependency_ReadData(t *testing.T) {
 			Type: yamll.TypeURL,
 		}
 
-		cfg := yamll.New("DEBUG")
+		cfg := yamll.New("DEBUG", "")
 		cfg.SetLogger()
 
 		out, err := dependency.ReadData(cfg.GetLogger())
@@ -82,7 +82,7 @@ func TestConfig_ResolveDependencies2(t *testing.T) {
 
 func TestDependency_Git(t *testing.T) {
 	t.Run("", func(t *testing.T) {
-		cfg := yamll.New("DEBUG")
+		cfg := yamll.New("DEBUG", "")
 		cfg.SetLogger()
 
 		t.Setenv("GITHUB_TOKEN", "testkey")

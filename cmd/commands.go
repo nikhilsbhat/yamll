@@ -47,7 +47,7 @@ func getRunCommand() *cobra.Command {
 yamll import --file path/to/file.yaml --no-validation`,
 		PreRunE: setCLIClient,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			cfg := yamll.New(yamllCfg.LogLevel, cliCfg.Files...)
+			cfg := yamll.New(yamllCfg.LogLevel, yamllCfg.Limiter, cliCfg.Files...)
 			cfg.SetLogger()
 			logger = cfg.GetLogger()
 
@@ -69,7 +69,7 @@ yamll import --file path/to/file.yaml --no-validation`,
 			}
 
 			if cliCfg.Explode {
-				explodedOut, err := out.Explode()
+				explodedOut, err := out.Explode(logger)
 				if err != nil {
 					logger.Error("exploding final YAML errored", slog.Any("error", err))
 					logger.Warn("rendering YAML without exploding, due to above errors")

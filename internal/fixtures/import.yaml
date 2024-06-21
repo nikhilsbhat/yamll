@@ -6,7 +6,9 @@
 #++https://test.com/test.yaml;{"user_name":"username","password":"pass","ca_content":"ca_content"}
 #++https://test.com/test.yaml;{"user_name":"${username}","password":"${pass}","ca_content":"${ca_content}"}
 
-config2: *default
+config2:
+  test: val
+  <<: *default
 
 config3:
   - *default

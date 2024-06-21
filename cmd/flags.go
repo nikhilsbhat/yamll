@@ -18,6 +18,8 @@ func registerCommonFlags(cmd *cobra.Command) {
 		"log level for the yamll")
 	cmd.PersistentFlags().StringVarP(&cliCfg.ToFile, "to-file", "", "",
 		"name of the file to which the final imported yaml should be written to")
+	cmd.PersistentFlags().StringVarP(&yamllCfg.Limiter, "limiter", "", "",
+		"limiters to separate the yaml files post merging")
 	cmd.PersistentFlags().StringArrayVarP(&cliCfg.Files, "file", "f", nil,
 		"root yaml files to be used for importing")
 	cmd.PersistentFlags().BoolVarP(&cliCfg.NoValidation, "no-validation", "", false,

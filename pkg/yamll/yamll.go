@@ -21,12 +21,15 @@ type YamlData struct {
 type Config struct {
 	Files    []*Dependency `json:"files,omitempty" yaml:"files,omitempty"`
 	LogLevel string        `json:"log_level,omitempty" yaml:"log_level,omitempty"`
+	Limiter  string        `json:"limiter,omitempty" yaml:"limiter,omitempty"`
 	Root     bool          `json:"root,omitempty" yaml:"root,omitempty"`
 	log      *slog.Logger
 }
 
+// YamlRoutes holds a map of YamlData, representing a dependency tree.
 type YamlRoutes map[string]*YamlData
 
+// Yaml is a string representation of YAML content.
 type Yaml string
 
 // Yaml identifies the YAML imports and merges them to create a single comprehensive YAML file.
@@ -70,7 +73,7 @@ func (cfg *Config) Yaml() (Yaml, error) {
 }
 
 // New returns new instance of Config with passed parameters.
-func New(logLevel string, paths ...string) *Config {
+func New(logLevel, limiter string, paths ...string) *Config {
 	dependencies := make([]*Dependency, 0)
 
 	for _, path := range paths {
@@ -79,5 +82,5 @@ func New(logLevel string, paths ...string) *Config {
 		dependencies = append(dependencies, dependency)
 	}
 
-	return &Config{Files: dependencies, LogLevel: logLevel}
+	return &Config{Files: dependencies, Limiter: limiter, LogLevel: logLevel}
 }

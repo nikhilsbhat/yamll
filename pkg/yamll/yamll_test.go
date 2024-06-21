@@ -9,7 +9,7 @@ import (
 
 func Test_fetchDependency(t *testing.T) {
 	t.Run("", func(t *testing.T) {
-		cfg := yamll.New("yamll/internal/fixtures/import.yaml")
+		cfg := yamll.New("yamll/internal/fixtures/import.yaml", "")
 		deps, err := cfg.Yaml()
 		assert.NoError(t, err)
 

@@ -20,7 +20,7 @@ func (cfg *Config) MergeData(src string, routes YamlRoutes) (string, error) {
 			return "", err
 		}
 
-		src = out + fmt.Sprintf("# Source: %s\n", file) + fmt.Sprintf("%s\n", fileData.DataRaw)
+		src = out + fmt.Sprintf("%s\n# Source: %s\n", cfg.Limiter, file) + fmt.Sprintf("%s\n", fileData.DataRaw)
 
 		cfg.log.Debug("root file was imported successfully", slog.String("file", file))
 	}
@@ -52,7 +52,7 @@ func (cfg *Config) Merge(src string, routes YamlRoutes, file string) (string, er
 	}
 
 	if !routes[file].Merged && !routes[file].Root {
-		src = src + fmt.Sprintf("# Source: %s\n", routes[file].File) + fmt.Sprintf("%s\n\n", routes[file].DataRaw)
+		src = src + fmt.Sprintf("%s\n# Source: %s\n", cfg.Limiter, routes[file].File) + fmt.Sprintf("%s\n", routes[file].DataRaw)
 
 		routes[file].Merged = true
 
@@ -62,6 +62,7 @@ func (cfg *Config) Merge(src string, routes YamlRoutes, file string) (string, er
 	return src, nil
 }
 
+// CheckInterDependency verifies for deadlock dependencies and raises an error if two YAML files import each other.
 func (yamlRoutes YamlRoutes) CheckInterDependency(file, dependency string) error {
 	if funk.Contains(yamlRoutes[file].Dependency, func(dep *Dependency) bool {
 		return dep.Path == dependency
