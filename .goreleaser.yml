@@ -12,17 +12,17 @@ builds:
       - -trimpath
     ldflags:
       - -s -w
-        -X github.com/nikhilsbhat/yamll/version.Version={{.Version}}
-        -X github.com/nikhilsbhat/yamll/version.Env={{.Env.BUILD_ENVIRONMENT}}
-        -X github.com/nikhilsbhat/yamll/version.BuildDate={{.Date}}
-        -X github.com/nikhilsbhat/yamll/version.Revision={{.Commit}}
-        -X github.com/nikhilsbhat/yamll/version.GoVersion={{.Env.GOVERSION}}
-        -X github.com/nikhilsbhat/yamll/version.Platform={{ .Os }}/{{ .Arch }}
+        -X github.com/nikhilsbhat/yamll/cmd.Version={{.Version}}
+        -X github.com/nikhilsbhat/yamll/cmd.Env={{.Env.BUILD_ENVIRONMENT}}
+        -X github.com/nikhilsbhat/yamll/cmd.BuildDate={{.Date}}
+        -X github.com/nikhilsbhat/yamll/cmd.Revision={{.Commit}}
+        -X github.com/nikhilsbhat/yamll/cmd.GoVersion={{.Env.GOVERSION}}
+        -X github.com/nikhilsbhat/yamll/cmd.Platform={{ .Os }}/{{ .Arch }}
     goos:
-      - linux
-      - darwin
       - freebsd
       - windows
+      - linux
+      - darwin
     goarch:
       - amd64
       - '386'
@@ -30,8 +30,20 @@ builds:
       - arm64
     binary: '{{ .ProjectName }}'
 
+dockers:
+  - goos: linux
+    goarch: amd64
+    ids:
+      - yamll
+    skip_push: false
+    image_templates:
+      - "ghcr.io/nikhilsbhat/yamll:latest"
+      - "ghcr.io/nikhilsbhat/yamll:{{ .Tag }}"
+      - "ghcr.io/nikhilsbhat/yamll:{{ .Tag }}-{{ .Env.GOVERSION }}"
+    dockerfile: Dockerfile
+
 archives:
-  - format: tar.gz
+  - format: 'tar.gz'
     name_template: >-
       {{- .ProjectName }}_
       {{- .Version }}_
@@ -39,11 +51,6 @@ archives:
       {{- if eq .Arch "amd64" }}x86_64
       {{- else if eq .Arch "386" }}i386
       {{- else }}{{ .Arch }}{{ end }}
-    files:
-      - plugin.yaml
-      - LICENSE
-      - completion.yaml
-      - install-binary.sh
 
 snapshot:
   name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Runtime.Goos }}_{{ .Runtime.Goarch }}"
@@ -69,4 +76,3 @@ changelog:
     exclude:
       - '^docs:'
       - '^test:'
-
