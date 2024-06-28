@@ -26,4 +26,7 @@ merged.yaml
 *_merged.*
 
 # dropping all locally built binaries generated from this repository
+yamll_*
+!yamll_*.md
 yamll
+!yamll/

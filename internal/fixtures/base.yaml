@@ -7,6 +7,8 @@ default: &default
   data:
     key1: value1
     key2: value2
-
-config1: *default
-#config2: *default
+config1:
+  <<: *default
+  apiVersionv2: v1
+config2:
+  testing: value

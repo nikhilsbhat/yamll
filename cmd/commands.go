@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/goccy/go-yaml"
+	"github.com/nikhilsbhat/common/renderer"
 	"github.com/nikhilsbhat/yamll/pkg/yamll"
 	"github.com/nikhilsbhat/yamll/version"
 	"github.com/spf13/cobra"
@@ -32,8 +33,8 @@ func getRootCommand() *cobra.Command {
 func getVersionCommand() *cobra.Command {
 	return &cobra.Command{
 		Use:   "version [flags]",
-		Short: "Command to fetch the version of yamll installed",
-		Long:  `This will help the user find what version of the yamll he or she installed in her machine.`,
+		Short: "Command to fetch the version of YAMLL installed",
+		Long:  `This will help the user find what version of the YAMLL he or she installed in her machine.`,
 		RunE:  versionConfig,
 	}
 }
@@ -44,10 +45,11 @@ func getRunCommand() *cobra.Command {
 		Short: "Imports defined sub-YAML files as libraries",
 		Long:  "Identifies dependency tree and imports them in the order to generate one single YAML file",
 		Example: `yamll import --file path/to/file.yaml
-yamll import --file path/to/file.yaml --no-validation`,
+yamll import --file path/to/file.yaml --no-validation
+yamll import --file path/to/file.yaml --effective`,
 		PreRunE: setCLIClient,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			cfg := yamll.New(yamllCfg.LogLevel, yamllCfg.Limiter, cliCfg.Files...)
+			cfg := yamll.New(yamllCfg.Effective, yamllCfg.LogLevel, yamllCfg.Limiter, cliCfg.Files...)
 			cfg.SetLogger()
 			logger = cfg.GetLogger()
 
@@ -75,6 +77,16 @@ yamll import --file path/to/file.yaml --no-validation`,
 					logger.Warn("rendering YAML without exploding, due to above errors")
 				} else {
 					out = explodedOut
+				}
+			}
+
+			if !cliCfg.NoColor {
+				render := renderer.GetRenderer(nil, nil, false, true, false, false, false)
+				coloredFinalData, err := render.ColorYAML(string(out))
+				if err != nil {
+					logger.Error("color coding yaml errored", slog.Any("error", err))
+				} else {
+					out = yamll.Yaml(coloredFinalData)
 				}
 			}
 

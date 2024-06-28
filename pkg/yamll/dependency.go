@@ -53,28 +53,14 @@ func (cfg *Config) ResolveDependencies(routes map[string]*YamlData, dependencies
 			continue
 		}
 
-		yamlFileData, err := dependencyPath.ReadData(cfg.log)
+		yamlFileData, err := dependencyPath.ReadData(cfg.Effective, cfg.log)
 		if err != nil {
 			return nil, &errors.YamllError{Message: fmt.Sprintf("reading YAML file errored with: '%v'", err)}
 		}
 
-		dependencies := make([]*Dependency, 0)
-		stringReader := strings.NewReader(yamlFileData)
-
-		scanner := bufio.NewScanner(stringReader)
-
-		for scanner.Scan() {
-			line := scanner.Text()
-			if strings.Contains(line, "##++") {
-				dependency, err := cfg.GetDependencyData(line)
-				if err != nil {
-					return nil, err
-				}
-
-				dependencies = append(dependencies, dependency)
-				yamlFileData = strings.ReplaceAll(yamlFileData, line, "")
-				yamlFileData = regexp.MustCompile(`[\t\r\n]+`).ReplaceAllString(strings.TrimSpace(yamlFileData), "\n")
-			}
+		dependencies, err := cfg.extractDependencies(yamlFileData)
+		if err != nil {
+			return nil, err
 		}
 
 		if fileHierarchy == 0 && !cfg.Root {
@@ -126,8 +112,12 @@ func (cfg *Config) GetDependencyData(dependency string) (*Dependency, error) {
 }
 
 // ReadData actually reads the data from the identified import.
-func (dependency *Dependency) ReadData(log *slog.Logger) (string, error) {
+func (dependency *Dependency) ReadData(effective bool, log *slog.Logger) (string, error) {
 	log.Debug("dependency file type identified", slog.String("type", dependency.Type), slog.Any("path", dependency.Path))
+
+	if effective {
+		log.Debug("reading yaml data in effective mode")
+	}
 
 	switch {
 	case dependency.Type == TypeURL:
@@ -139,6 +129,29 @@ func (dependency *Dependency) ReadData(log *slog.Logger) (string, error) {
 	default:
 		return "", &errors.YamllError{Message: fmt.Sprintf("reading data from of type '%s' is not supported", dependency.Type)}
 	}
+}
+
+// extractDependencies parses the dependencies from YAML file data.
+func (cfg *Config) extractDependencies(yamlFileData string) ([]*Dependency, error) {
+	var dependencies []*Dependency
+
+	scanner := bufio.NewScanner(strings.NewReader(yamlFileData))
+
+	for scanner.Scan() {
+		line := scanner.Text()
+		if strings.Contains(line, "##++") {
+			dependency, err := cfg.GetDependencyData(line)
+			if err != nil {
+				return nil, err
+			}
+
+			dependencies = append(dependencies, dependency)
+			yamlFileData = strings.ReplaceAll(yamlFileData, line, "")
+			yamlFileData = regexp.MustCompile(`[\t\r\n]+`).ReplaceAllString(strings.TrimSpace(yamlFileData), "\n")
+		}
+	}
+
+	return dependencies, scanner.Err()
 }
 
 func (dependency *Dependency) identifyType() {

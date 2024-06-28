@@ -9,21 +9,21 @@ import (
 
 // YamlData holds information of yaml file and its dependency tree.
 type YamlData struct {
-	Root       bool                   `json:"root,omitempty" yaml:"root,omitempty"`
-	Merged     bool                   `json:"merged,omitempty" yaml:"merged,omitempty"`
-	File       string                 `json:"file,omitempty" yaml:"file,omitempty"`
-	Dependency []*Dependency          `json:"dependency,omitempty" yaml:"dependency,omitempty"`
-	DataRaw    string                 `json:"data_raw,omitempty" yaml:"data_raw,omitempty"`
-	Data       map[string]interface{} `json:"data,omitempty" yaml:"data,omitempty"`
+	Root       bool          `json:"root,omitempty" yaml:"root,omitempty"`
+	Merged     bool          `json:"merged,omitempty" yaml:"merged,omitempty"`
+	File       string        `json:"file,omitempty" yaml:"file,omitempty"`
+	DataRaw    string        `json:"data_raw,omitempty" yaml:"data_raw,omitempty"`
+	Dependency []*Dependency `json:"dependency,omitempty" yaml:"dependency,omitempty"`
 }
 
 // Config holds the information of yaml files to be parsed.
 type Config struct {
-	Files    []*Dependency `json:"files,omitempty" yaml:"files,omitempty"`
-	LogLevel string        `json:"log_level,omitempty" yaml:"log_level,omitempty"`
-	Limiter  string        `json:"limiter,omitempty" yaml:"limiter,omitempty"`
-	Root     bool          `json:"root,omitempty" yaml:"root,omitempty"`
-	log      *slog.Logger
+	Root      bool          `json:"root,omitempty" yaml:"root,omitempty"`
+	Effective bool          `json:"effective,omitempty" yaml:"effective,omitempty"`
+	Limiter   string        `json:"limiter,omitempty" yaml:"limiter,omitempty"`
+	LogLevel  string        `json:"log_level,omitempty" yaml:"log_level,omitempty"`
+	Files     []*Dependency `json:"files,omitempty" yaml:"files,omitempty"`
+	log       *slog.Logger
 }
 
 // YamlRoutes holds a map of YamlData, representing a dependency tree.
@@ -69,11 +69,20 @@ func (cfg *Config) Yaml() (Yaml, error) {
 		return "", err
 	}
 
-	return Yaml(finalData), nil
+	if cfg.Effective {
+		effectiveMergedYaml, err := finalData.EffectiveMerge()
+		if err != nil {
+			return "", err
+		}
+
+		finalData = effectiveMergedYaml
+	}
+
+	return finalData, nil
 }
 
 // New returns new instance of Config with passed parameters.
-func New(logLevel, limiter string, paths ...string) *Config {
+func New(effective bool, logLevel, limiter string, paths ...string) *Config {
 	dependencies := make([]*Dependency, 0)
 
 	for _, path := range paths {
@@ -82,5 +91,5 @@ func New(logLevel, limiter string, paths ...string) *Config {
 		dependencies = append(dependencies, dependency)
 	}
 
-	return &Config{Files: dependencies, Limiter: limiter, LogLevel: logLevel}
+	return &Config{Files: dependencies, Limiter: limiter, LogLevel: logLevel, Effective: effective}
 }

@@ -16,9 +16,7 @@ func (dependency *Dependency) URL(log *slog.Logger) (string, error) {
 		log.Debug("using token based auth for remote URL", slog.Any("url", dependency.Path))
 
 		httpClient.SetAuthToken(dependency.Auth.BarerToken)
-	}
-
-	if len(dependency.Auth.UserName) != 0 && len(dependency.Auth.Password) != 0 {
+	} else if len(dependency.Auth.UserName) != 0 && len(dependency.Auth.Password) != 0 {
 		log.Debug("using basic auth for remote URL", slog.Any("url", dependency.Path))
 
 		httpClient.SetBasicAuth(dependency.Auth.UserName, dependency.Auth.Password)

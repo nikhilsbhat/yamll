@@ -1,17 +1,21 @@
 ##++internal/fixtures/base.yaml
 ##++internal/fixtures/base2.yaml
-#++git+https://github.com/nikhilsbhat/yamll@main?path=internal/fixtures/base2.yaml;{"user_name":"${GIT_USERNAME}","password":"${GITHUB_TOKEN}"}
+##++git+https://github.com/nikhilsbhat/yamll@main?path=internal/fixtures/base2.yaml;{"user_name":"${GIT_USERNAME}","password":"${GITHUB_TOKEN}"}
 ##++http://localhost:3000/database.yaml
 #++path/to/test.yaml
 #++https://test.com/test.yaml;{"user_name":"username","password":"pass","ca_content":"ca_content"}
 #++https://test.com/test.yaml;{"user_name":"${username}","password":"${pass}","ca_content":"${ca_content}"}
 
 config2:
-  test: val
   <<: *default
+  test: val
 
 config3:
-  - *default
-  - *mysqldatabase
+  - <<: *default
+  - <<: *mysqldatabase
 
-workflow: *mysqldatabase
+workflow:
+  <<: *mysqldatabase
+
+config1:
+  apiVersion3: v2

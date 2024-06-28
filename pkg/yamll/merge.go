@@ -9,7 +9,7 @@ import (
 )
 
 // MergeData combines the YAML file data according to the hierarchy.
-func (cfg *Config) MergeData(src string, routes YamlRoutes) (string, error) {
+func (cfg *Config) MergeData(src string, routes YamlRoutes) (Yaml, error) {
 	for file, fileData := range routes {
 		if !fileData.Root {
 			continue
@@ -20,12 +20,12 @@ func (cfg *Config) MergeData(src string, routes YamlRoutes) (string, error) {
 			return "", err
 		}
 
-		src = out + fmt.Sprintf("%s\n# Source: %s\n", cfg.Limiter, file) + fmt.Sprintf("%s\n", fileData.DataRaw)
+		src = out + fmt.Sprintf("\n%s\n# Source: %s\n%s\n", cfg.Limiter, file, fileData.DataRaw)
 
 		cfg.log.Debug("root file was imported successfully", slog.String("file", file))
 	}
 
-	return src, nil
+	return Yaml(src), nil
 }
 
 // Merge actually merges the data when invoked with correct parameters.
@@ -52,7 +52,7 @@ func (cfg *Config) Merge(src string, routes YamlRoutes, file string) (string, er
 	}
 
 	if !routes[file].Merged && !routes[file].Root {
-		src = src + fmt.Sprintf("%s\n# Source: %s\n", cfg.Limiter, routes[file].File) + fmt.Sprintf("%s\n", routes[file].DataRaw)
+		src = fmt.Sprintf("%s\n%s\n# Source: %s\n%s", src, cfg.Limiter, routes[file].File, routes[file].DataRaw)
 
 		routes[file].Merged = true
 
