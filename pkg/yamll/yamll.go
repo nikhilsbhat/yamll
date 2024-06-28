@@ -11,6 +11,7 @@ import (
 type YamlData struct {
 	Root       bool          `json:"root,omitempty" yaml:"root,omitempty"`
 	Merged     bool          `json:"merged,omitempty" yaml:"merged,omitempty"`
+	Index      int           `json:"index,omitempty" yaml:"index,omitempty"`
 	File       string        `json:"file,omitempty" yaml:"file,omitempty"`
 	DataRaw    string        `json:"data_raw,omitempty" yaml:"data_raw,omitempty"`
 	Dependency []*Dependency `json:"dependency,omitempty" yaml:"dependency,omitempty"`
@@ -79,6 +80,21 @@ func (cfg *Config) Yaml() (Yaml, error) {
 	}
 
 	return finalData, nil
+}
+
+func (cfg *Config) YamlTree(color bool) error {
+	dependencyRoutes, err := cfg.ResolveDependencies(make(map[string]*YamlData), cfg.Files...)
+	if err != nil {
+		return &errors.YamllError{Message: fmt.Sprintf("fetching dependency tree errored with: '%v'", err)}
+	}
+
+	rootFile := cfg.Files[0].Path
+
+	cfg.log.Debug("identified root file", slog.Any("file", rootFile))
+
+	YamlRoutes(dependencyRoutes).PrintDependencyTree(rootFile, "", true, color)
+
+	return err
 }
 
 // New returns new instance of Config with passed parameters.

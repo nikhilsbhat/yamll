@@ -1,25 +1,26 @@
-## yamll version
+## yamll tree
 
-Command to fetch the version of YAMLL installed
+builds dependency trees from sub-YAML files defined as libraries
 
 ### Synopsis
 
-This will help the user find what version of the YAMLL he or she installed in her machine.
+Identifies dependencies and builds the dependency tree for the base yaml
 
 ```
-yamll version [flags]
+yamll tree [flags]
+```
+
+### Examples
+
+```
+yamll tree --file path/to/file.yaml
 ```
 
 ### Options
 
 ```
-  -h, --help   help for version
-```
-
-### Options inherited from parent commands
-
-```
   -f, --file stringArray   root yaml files to be used for importing
+  -h, --help               help for tree
       --limiter string     limiters to separate the yaml files post merging (default "---")
       --log-level string   log level for the yamll (default "INFO")
       --no-color           when enabled the output would not be color encoded

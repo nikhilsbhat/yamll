@@ -39,7 +39,7 @@ func getVersionCommand() *cobra.Command {
 	}
 }
 
-func getRunCommand() *cobra.Command {
+func getImportCommand() *cobra.Command {
 	importCommand := &cobra.Command{
 		Use:   "import [flags]",
 		Short: "Imports defined sub-YAML files as libraries",
@@ -92,6 +92,33 @@ yamll import --file path/to/file.yaml --effective`,
 
 			if _, err = writer.Write([]byte(out)); err != nil {
 				return err
+			}
+
+			return nil
+		},
+	}
+
+	importCommand.SilenceErrors = true
+	registerCommonFlags(importCommand)
+	registerImportFlags(importCommand)
+
+	return importCommand
+}
+
+func getTreeCommand() *cobra.Command {
+	importCommand := &cobra.Command{
+		Use:     "tree [flags]",
+		Short:   "builds dependency trees from sub-YAML files defined as libraries",
+		Long:    "Identifies dependencies and builds the dependency tree for the base yaml",
+		Example: `yamll tree --file path/to/file.yaml`,
+		PreRunE: setCLIClient,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			cfg := yamll.New(yamllCfg.Effective, yamllCfg.LogLevel, yamllCfg.Limiter, cliCfg.Files...)
+			cfg.SetLogger()
+			logger = cfg.GetLogger()
+
+			if err := cfg.YamlTree(cliCfg.NoColor); err != nil {
+				logger.Error("errored generating final yaml", slog.Any("err", err))
 			}
 
 			return nil

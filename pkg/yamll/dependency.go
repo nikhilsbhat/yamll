@@ -67,7 +67,7 @@ func (cfg *Config) ResolveDependencies(routes map[string]*YamlData, dependencies
 			cfg.Root = true
 		}
 
-		routes[dependencyPath.Path] = &YamlData{Root: rootFile, File: dependencyPath.Path, DataRaw: yamlFileData, Dependency: dependencies}
+		routes[dependencyPath.Path] = &YamlData{Root: rootFile, File: dependencyPath.Path, DataRaw: yamlFileData, Dependency: dependencies, Index: fileHierarchy}
 
 		if len(dependencies) != 0 {
 			dependencyRoutes, err := cfg.ResolveDependencies(routes, dependencies...)

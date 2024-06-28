@@ -4,9 +4,15 @@ import (
 	"fmt"
 	"log/slog"
 
+	"github.com/fatih/color"
 	"github.com/nikhilsbhat/yamll/pkg/errors"
 	"github.com/thoas/go-funk"
 )
+
+type YamlTree struct {
+	Value       string
+	Left, Right *YamlTree
+}
 
 // MergeData combines the YAML file data according to the hierarchy.
 func (cfg *Config) MergeData(src string, routes YamlRoutes) (Yaml, error) {
@@ -73,4 +79,29 @@ func (yamlRoutes YamlRoutes) CheckInterDependency(file, dependency string) error
 	}
 
 	return nil
+}
+
+// PrintDependencyTree recursively prints the dependency tree.
+func (yamlRoutes YamlRoutes) PrintDependencyTree(name string, prefix string, isTail, noColor bool) {
+	color.NoColor = noColor
+
+	if data, exists := yamlRoutes[name]; exists {
+		connector := color.GreenString("├── ")
+		if isTail {
+			connector = color.GreenString("└── ")
+		}
+
+		fmt.Printf("%s%s%s\n", prefix, connector, color.MagentaString(name))
+
+		newPrefix := prefix
+		if isTail {
+			newPrefix += "    "
+		} else {
+			newPrefix += color.GreenString("│   ")
+		}
+
+		for i, dep := range data.Dependency {
+			yamlRoutes.PrintDependencyTree(dep.Path, newPrefix, i == len(data.Dependency)-1, noColor)
+		}
+	}
 }

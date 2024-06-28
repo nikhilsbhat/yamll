@@ -27,7 +27,8 @@ func SetYamllCommands() *cobra.Command {
 // Add an entry in below function to register new command.
 func getYamllCommands() *cobra.Command {
 	command := new(yamllCommands)
-	command.commands = append(command.commands, getRunCommand())
+	command.commands = append(command.commands, getImportCommand())
+	command.commands = append(command.commands, getTreeCommand())
 	command.commands = append(command.commands, getVersionCommand())
 
 	return command.prepareCommands()
