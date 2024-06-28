@@ -168,6 +168,29 @@ config3:
 workflow: *mysqldatabase
 ```
 
+### Dependency Tree
+
+Want to see all your dependencies in a tree format? This `yamll` tool supports that too.
+
+Using `yaml tree` will print dependencies just like the Linux `tree command`.
+
+**Example**:
+
+```sh
+yamll tree -f import.yaml
+```
+
+**Output**:
+```sh
+└── internal/fixtures/import.yaml
+    ├── internal/fixtures/base.yaml
+    │   └── internal/fixtures/base3.yaml
+    ├── internal/fixtures/base2.yaml
+    │   └── internal/fixtures/base3.yaml
+    ├── https://github.com/nikhilsbhat/yamll@main?path=internal/fixtures/base2.yaml
+    │   └── internal/fixtures/base3.yaml
+    └── http://localhost:3000/database.yaml
+```
 ### Preventing Import Cycles
 
 `yamll` detects and prevents import cycles. If an import cycle is detected, it will report an error and stop the merging
