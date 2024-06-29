@@ -64,7 +64,7 @@ yamll import -f import.yaml
 
 ### Handling Imports
 
-YAML files can specify imports using the comments that starts with `##**`. `yamll` will resolve these imports and merge the contents.
+YAML files can specify imports using the comments that starts with `##++`. `yamll` will resolve these imports and merge the contents.
 
 It can construct the dependency tree and import them in the correct order, with each dependency able to have its own defined dependencies.
 
