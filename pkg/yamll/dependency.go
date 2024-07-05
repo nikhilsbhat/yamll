@@ -53,7 +53,7 @@ func (cfg *Config) ResolveDependencies(routes map[string]*YamlData, dependencies
 			continue
 		}
 
-		yamlFileData, err := dependencyPath.ReadData(cfg.Effective, cfg.log)
+		yamlFileData, err := dependencyPath.readData(cfg.Effective, cfg.log)
 		if err != nil {
 			return nil, &errors.YamllError{Message: fmt.Sprintf("reading YAML file errored with: '%v'", err)}
 		}
@@ -84,8 +84,8 @@ func (cfg *Config) ResolveDependencies(routes map[string]*YamlData, dependencies
 	return routes, nil
 }
 
-// GetDependencyData reads the imports analyses it and generates Dependency data for it.
-func (cfg *Config) GetDependencyData(dependency string) (*Dependency, error) {
+// getDependencyData reads the imports analyses it and generates Dependency data for it.
+func (cfg *Config) getDependencyData(dependency string) (*Dependency, error) {
 	imports := strings.Split(dependency, ";")
 	runeSlice := []rune(imports[0])
 
@@ -111,8 +111,8 @@ func (cfg *Config) GetDependencyData(dependency string) (*Dependency, error) {
 	return dependencyData, nil
 }
 
-// ReadData actually reads the data from the identified import.
-func (dependency *Dependency) ReadData(effective bool, log *slog.Logger) (string, error) {
+// readData actually reads the data from the identified import.
+func (dependency *Dependency) readData(effective bool, log *slog.Logger) (string, error) {
 	log.Debug("dependency file type identified", slog.String("type", dependency.Type), slog.Any("path", dependency.Path))
 
 	if effective {
@@ -140,7 +140,7 @@ func (cfg *Config) extractDependencies(yamlFileData string) ([]*Dependency, erro
 	for scanner.Scan() {
 		line := scanner.Text()
 		if strings.Contains(line, "##++") {
-			dependency, err := cfg.GetDependencyData(line)
+			dependency, err := cfg.getDependencyData(line)
 			if err != nil {
 				return nil, err
 			}

@@ -10,8 +10,10 @@ import (
 	"github.com/nikhilsbhat/yamll/pkg/errors"
 )
 
+// Data is a data type that holds de-serialised yaml data.
 type Data map[string]interface{}
 
+// EffectiveMerge merges multiple yaml contents effectively.
 func (yml Yaml) EffectiveMerge() (Yaml, error) {
 	yamlMapMerged := make(Data)
 

@@ -8,6 +8,12 @@ import (
 	"github.com/go-resty/resty/v2"
 )
 
+type FetchData interface {
+	URL(log *slog.Logger) (string, error)
+	Git(log *slog.Logger) (string, error)
+	File(_ *slog.Logger) (string, error)
+}
+
 // URL reads the data from the URL import.
 func (dependency *Dependency) URL(log *slog.Logger) (string, error) {
 	httpClient := resty.New()

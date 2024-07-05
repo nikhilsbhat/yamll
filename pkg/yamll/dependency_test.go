@@ -1,4 +1,4 @@
-package yamll_test
+package yamll
 
 import (
 	"bufio"
@@ -6,7 +6,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/nikhilsbhat/yamll/pkg/yamll"
 	"github.com/stretchr/testify/assert"
 	"gopkg.in/yaml.v3"
 )
@@ -26,14 +25,14 @@ func Test_getDependencyData2(t *testing.T) {
 
 		t.Setenv("PASSWORD", "super-secret-password")
 
-		cfg := yamll.New(false, "DEBUG", "")
+		cfg := New(false, "DEBUG", "")
 		cfg.SetLogger()
 
-		dependencies := make([]*yamll.Dependency, 0)
+		dependencies := make([]*Dependency, 0)
 		for scanner.Scan() {
 			line := scanner.Text()
 			if strings.Contains(line, "##++") {
-				dependency, err := cfg.GetDependencyData(line)
+				dependency, err := cfg.getDependencyData(line)
 				assert.NoError(t, err)
 				dependencies = append(dependencies, dependency)
 			}
@@ -47,15 +46,15 @@ func Test_getDependencyData2(t *testing.T) {
 
 func TestDependency_ReadData(t *testing.T) {
 	t.Run("", func(t *testing.T) {
-		dependency := yamll.Dependency{
+		dependency := Dependency{
 			Path: "https://run.mocky.io/v3/0a2afb01-5b4a-4bb1-9e5b-5eb7b09330c1",
-			Type: yamll.TypeURL,
+			Type: TypeURL,
 		}
 
-		cfg := yamll.New(false, "DEBUG", "")
+		cfg := New(false, "DEBUG", "")
 		cfg.SetLogger()
 
-		out, err := dependency.ReadData(false, cfg.GetLogger())
+		out, err := dependency.readData(false, cfg.GetLogger())
 		assert.NoError(t, err)
 		fmt.Println(out)
 		assert.Nil(t, out)
@@ -64,14 +63,14 @@ func TestDependency_ReadData(t *testing.T) {
 
 func TestConfig_ResolveDependencies2(t *testing.T) {
 	t.Run("", func(t *testing.T) {
-		dependency := []*yamll.Dependency{{
+		dependency := []*Dependency{{
 			Path: "/path/to/my-opensource/yamll/internal/fixtures/import.yaml",
-			Type: yamll.TypeFile,
+			Type: TypeFile,
 		}}
-		cfg := yamll.New(false, "DEBUG", "/path/to/my-opensource/yamll/internal/fixtures/import.yaml")
+		cfg := New(false, "DEBUG", "/path/to/my-opensource/yamll/internal/fixtures/import.yaml")
 		cfg.SetLogger()
 
-		dependencyRoutes, err := cfg.ResolveDependencies(make(map[string]*yamll.YamlData), dependency...)
+		dependencyRoutes, err := cfg.ResolveDependencies(make(map[string]*YamlData), dependency...)
 		assert.NoError(t, err)
 
 		out, err := yaml.Marshal(dependencyRoutes)
@@ -82,15 +81,15 @@ func TestConfig_ResolveDependencies2(t *testing.T) {
 
 func TestDependency_Git(t *testing.T) {
 	t.Run("", func(t *testing.T) {
-		cfg := yamll.New(false, "DEBUG", "")
+		cfg := New(false, "DEBUG", "")
 		cfg.SetLogger()
 
 		t.Setenv("GITHUB_TOKEN", "testkey")
-		dependency := yamll.Dependency{
+		dependency := Dependency{
 			// Path: "git+https://github.com/nikhilsbhat/yamll@main?path=internal/fixtures/base.yaml",
 			Path: "git+ssh://git@github.com:nikhilsbhat/yamll@main?path=internal/fixtures/base.yaml",
 			Type: "",
-			Auth: yamll.Auth{
+			Auth: Auth{
 				UserName: "nikhilsbhat",
 				// Password: os.Getenv("GITHUB_TOKEN"),
 				SSHKey: "/path/to/ssh/private/key",

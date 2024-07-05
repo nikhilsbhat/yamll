@@ -14,14 +14,14 @@ type YamlTree struct {
 	Left, Right *YamlTree
 }
 
-// MergeData combines the YAML file data according to the hierarchy.
-func (cfg *Config) MergeData(src string, routes YamlRoutes) (Yaml, error) {
+// mergeData combines the YAML file data according to the hierarchy.
+func (cfg *Config) mergeData(src string, routes YamlRoutes) (Yaml, error) {
 	for file, fileData := range routes {
 		if !fileData.Root {
 			continue
 		}
 
-		out, err := cfg.Merge(src, routes, file)
+		out, err := cfg.merge(src, routes, file)
 		if err != nil {
 			return "", err
 		}
@@ -34,10 +34,10 @@ func (cfg *Config) MergeData(src string, routes YamlRoutes) (Yaml, error) {
 	return Yaml(src), nil
 }
 
-// Merge actually merges the data when invoked with correct parameters.
-func (cfg *Config) Merge(src string, routes YamlRoutes, file string) (string, error) {
+// merge actually merges the data when invoked with correct parameters.
+func (cfg *Config) merge(src string, routes YamlRoutes, file string) (string, error) {
 	for _, dependency := range routes[file].Dependency {
-		if err := routes.CheckInterDependency(file, dependency.Path); err != nil {
+		if err := routes.checkInterDependency(file, dependency.Path); err != nil {
 			return "", err
 		}
 
@@ -49,7 +49,7 @@ func (cfg *Config) Merge(src string, routes YamlRoutes, file string) (string, er
 			continue
 		}
 
-		out, err := cfg.Merge(src, routes, dependency.Path)
+		out, err := cfg.merge(src, routes, dependency.Path)
 		if err != nil {
 			return "", err
 		}
@@ -68,8 +68,8 @@ func (cfg *Config) Merge(src string, routes YamlRoutes, file string) (string, er
 	return src, nil
 }
 
-// CheckInterDependency verifies for deadlock dependencies and raises an error if two YAML files import each other.
-func (yamlRoutes YamlRoutes) CheckInterDependency(file, dependency string) error {
+// checkInterDependency verifies for deadlock dependencies and raises an error if two YAML files import each other.
+func (yamlRoutes YamlRoutes) checkInterDependency(file, dependency string) error {
 	if funk.Contains(yamlRoutes[file].Dependency, func(dep *Dependency) bool {
 		return dep.Path == dependency
 	}) && funk.Contains(yamlRoutes[dependency].Dependency, func(dep *Dependency) bool {

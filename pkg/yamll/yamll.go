@@ -65,7 +65,7 @@ func (cfg *Config) Yaml() (Yaml, error) {
 
 	var importData string
 
-	finalData, err := cfg.MergeData(importData, dependencyRoutes)
+	finalData, err := cfg.mergeData(importData, dependencyRoutes)
 	if err != nil {
 		return "", err
 	}

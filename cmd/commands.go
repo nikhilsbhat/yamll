@@ -82,7 +82,7 @@ yamll import --file path/to/file.yaml --effective`,
 
 			if !cliCfg.NoColor {
 				render := renderer.GetRenderer(nil, nil, false, true, false, false, false)
-				coloredFinalData, err := render.ColorYAML(string(out))
+				coloredFinalData, err := render.Color(renderer.TypeYAML, string(out))
 				if err != nil {
 					logger.Error("color coding yaml errored", slog.Any("error", err))
 				} else {
