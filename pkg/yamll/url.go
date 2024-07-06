@@ -8,6 +8,7 @@ import (
 	"github.com/go-resty/resty/v2"
 )
 
+// FetchData implements the methods to fetch the yaml data from various sources.
 type FetchData interface {
 	URL(log *slog.Logger) (string, error)
 	Git(log *slog.Logger) (string, error)

@@ -53,7 +53,7 @@ func (cfg *Config) ResolveDependencies(routes map[string]*YamlData, dependencies
 			continue
 		}
 
-		yamlFileData, err := dependencyPath.readData(cfg.Effective, cfg.log)
+		yamlFileData, err := dependencyPath.readData(cfg.Merge, cfg.log)
 		if err != nil {
 			return nil, &errors.YamllError{Message: fmt.Sprintf("reading YAML file errored with: '%v'", err)}
 		}

@@ -30,6 +30,7 @@ func (cfg *Config) setLogLevel() slog.Level {
 	}
 }
 
+// GetLogger gets the initialised logger.
 func (cfg *Config) GetLogger() *slog.Logger {
 	return cfg.log
 }

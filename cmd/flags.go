@@ -13,7 +13,7 @@ type Config struct {
 	Files        []string
 }
 
-// // Registers all global flags to utility.
+// Registers all global flags to utility.
 func registerCommonFlags(cmd *cobra.Command) {
 	cmd.PersistentFlags().StringVarP(&yamllCfg.LogLevel, "log-level", "", "INFO",
 		"log level for the yamll")
@@ -31,11 +31,9 @@ func registerImportFlags(cmd *cobra.Command) {
 	cmd.PersistentFlags().BoolVarP(&cliCfg.NoValidation, "no-validation", "", false,
 		"when enabled it skips validating the final generated YAML file")
 	cmd.PersistentFlags().BoolVarP(&cliCfg.Explode, "explode", "", false,
-		"when enabled, it expands any aliases and anchor tags present. "+
-			"However, it might not produce the correct output when anchors and aliases are used across multiple inline YAML files. "+
-			"In such cases, use --effective instead.")
-	cmd.PersistentFlags().BoolVarP(&yamllCfg.Effective, "effective", "", false,
+		"when enabled, it expands any aliases and anchor tags present")
+	cmd.PersistentFlags().BoolVarP(&yamllCfg.Merge, "merge", "", false,
 		"when enabled it merges the yaml files effectively")
 
-	cmd.MarkFlagsMutuallyExclusive("explode", "effective")
+	cmd.MarkFlagsMutuallyExclusive("explode", "merge")
 }

@@ -2,7 +2,6 @@ package yamll
 
 import (
 	"fmt"
-	"log"
 	"strings"
 
 	"dario.cat/mergo"
@@ -30,7 +29,7 @@ func (yml Yaml) EffectiveMerge() (Yaml, error) {
 		anchorRefs := strings.NewReader(string(yml))
 
 		if err := yaml.UnmarshalWithOptions([]byte(yamlData), &yamlMap, yaml.ReferenceReaders(anchorRefs)); err != nil {
-			log.Fatal(err)
+			return "", &errors.YamllError{Message: fmt.Sprintf("error deserialising YAML file: %v", err)}
 		}
 
 		if err := mergeStructs(&yamlMapMerged, yamlMap); err != nil {

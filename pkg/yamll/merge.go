@@ -9,6 +9,7 @@ import (
 	"github.com/thoas/go-funk"
 )
 
+// YamlTree holds the information of defined yaml dependencies.
 type YamlTree struct {
 	Value       string
 	Left, Right *YamlTree

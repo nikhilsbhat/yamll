@@ -19,12 +19,13 @@ type YamlData struct {
 
 // Config holds the information of yaml files to be parsed.
 type Config struct {
-	Root      bool          `json:"root,omitempty" yaml:"root,omitempty"`
-	Effective bool          `json:"effective,omitempty" yaml:"effective,omitempty"`
-	Limiter   string        `json:"limiter,omitempty" yaml:"limiter,omitempty"`
-	LogLevel  string        `json:"log_level,omitempty" yaml:"log_level,omitempty"`
-	Files     []*Dependency `json:"files,omitempty" yaml:"files,omitempty"`
-	log       *slog.Logger
+	Root     bool          `json:"root,omitempty" yaml:"root,omitempty"`
+	Merge    bool          `json:"effective,omitempty" yaml:"effective,omitempty"`
+	Split    bool          `json:"split,omitempty" yaml:"split,omitempty"`
+	Limiter  string        `json:"limiter,omitempty" yaml:"limiter,omitempty"`
+	LogLevel string        `json:"log_level,omitempty" yaml:"log_level,omitempty"`
+	Files    []*Dependency `json:"files,omitempty" yaml:"files,omitempty"`
+	log      *slog.Logger
 }
 
 // YamlRoutes holds a map of YamlData, representing a dependency tree.
@@ -70,7 +71,7 @@ func (cfg *Config) Yaml() (Yaml, error) {
 		return "", err
 	}
 
-	if cfg.Effective {
+	if cfg.Merge && !cfg.Split {
 		effectiveMergedYaml, err := finalData.EffectiveMerge()
 		if err != nil {
 			return "", err
@@ -82,6 +83,7 @@ func (cfg *Config) Yaml() (Yaml, error) {
 	return finalData, nil
 }
 
+// YamlTree constructs a dependency tree and displays it in a format similar to the Linux tree utility.
 func (cfg *Config) YamlTree(color bool) error {
 	dependencyRoutes, err := cfg.ResolveDependencies(make(map[string]*YamlData), cfg.Files...)
 	if err != nil {
@@ -107,5 +109,5 @@ func New(effective bool, logLevel, limiter string, paths ...string) *Config {
 		dependencies = append(dependencies, dependency)
 	}
 
-	return &Config{Files: dependencies, Limiter: limiter, LogLevel: logLevel, Effective: effective}
+	return &Config{Files: dependencies, Limiter: limiter, LogLevel: logLevel, Merge: effective}
 }
