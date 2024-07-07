@@ -59,6 +59,27 @@ brews:
     description: "A utility that allows importing YAML files as libraries, similar to how programming languages manage dependencies"
     license: "MIT"
     directory: Formula
+    commit_msg_template: "Add brew formula for {{ .ProjectName }} latest"
+    download_strategy: CurlDownloadStrategy
+    commit_author:
+      name: nikhilsbhat
+      email: nikhilsbhat93@gmail.com
+    repository:
+      owner: nikhilsbhat
+      name: homebrew-stable
+      branch: main
+      pull_request:
+        enabled: true
+        base:
+          owner: nikhilsbhat
+          name: homebrew-stable
+          branch: main
+  - name: '{{ .ProjectName }}@{{ .Version }}'
+    homepage: https://github.com/nikhilsbhat/yamll
+    url_template: "https://github.com/nikhilsbhat/yamll/releases/download/{{ .Tag }}/{{ .ArtifactName }}"
+    description: "A utility that allows importing YAML files as libraries, similar to how programming languages manage dependencies"
+    license: "MIT"
+    directory: Formula
     commit_msg_template: "Add brew formula for {{ .ProjectName }} version {{ .Tag }}"
     download_strategy: CurlDownloadStrategy
     commit_author:
