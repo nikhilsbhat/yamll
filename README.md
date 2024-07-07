@@ -31,6 +31,20 @@ It ensures a single comprehensive YAML file by resolving interdependencies and p
 
 * Recommend installing released versions. Release binaries are available on the [releases](https://github.com/nikhilsbhat/yamll/releases) page.
 
+#### Homebrew
+
+Install latest version on `yamll` on `macOS`
+
+```shell
+brew tap nikshilsbhat/stable git@github.com:nikhilsbhat/homebrew-stable.git
+# for latest version
+brew install nikshilsbhat/stable/yamll
+# for specific version
+brew install nikshilsbhat/stable/yamll@0.0.3
+```
+
+Check [repo](https://github.com/nikhilsbhat/homebrew-stable) for all available versions of the formula.
+
 #### Docker
 
 Latest version of docker images are published to [ghcr.io](https://github.com/nikhilsbhat/yamll/pkgs/container/yamll), all available images can be found there. </br>
