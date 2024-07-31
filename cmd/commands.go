@@ -21,7 +21,7 @@ func getRootCommand() *cobra.Command {
 		Short: "A utility to facilitate the inclusion of sub-YAML files as libraries.",
 		Long:  `It identifies imports declared in YAML files and merges them to generate a single final YAML file, similar to importing libraries in programming.`,
 		Args:  cobra.NoArgs,
-		RunE: func(cmd *cobra.Command, args []string) error {
+		RunE: func(cmd *cobra.Command, _ []string) error {
 			return cmd.Usage()
 		},
 	}
@@ -48,7 +48,7 @@ func getImportCommand() *cobra.Command {
 yamll import --file path/to/file.yaml --no-validation
 yamll import --file path/to/file.yaml --effective`,
 		PreRunE: setCLIClient,
-		RunE: func(cmd *cobra.Command, args []string) error {
+		RunE: func(_ *cobra.Command, _ []string) error {
 			cfg := yamll.New(yamllCfg.Merge, yamllCfg.LogLevel, yamllCfg.Limiter, cliCfg.Files...)
 			cfg.SetLogger()
 			logger = cfg.GetLogger()
@@ -105,14 +105,72 @@ yamll import --file path/to/file.yaml --effective`,
 	return importCommand
 }
 
+func getBuildCommand() *cobra.Command {
+	buildCommand := &cobra.Command{
+		Use:     "build [flags]",
+		Short:   "Builds YAML files substituting imports",
+		Long:    "Builds YAML by substituting all anchors and aliases defined in sub-YAML files defined as libraries",
+		Example: `yamll build --file path/to/file.yaml`,
+		PreRunE: setCLIClient,
+		RunE: func(_ *cobra.Command, _ []string) error {
+			cfg := yamll.New(yamllCfg.Merge, yamllCfg.LogLevel, yamllCfg.Limiter, cliCfg.Files...)
+			cfg.SetLogger()
+			logger = cfg.GetLogger()
+
+			out, err := cfg.YamlBuild()
+			if err != nil {
+				logger.Error("errored generating final yaml", slog.Any("err", err))
+			}
+
+			if !cliCfg.NoValidation {
+				logger.Debug("validating final yaml for syntax")
+				var data interface{}
+				err = yaml.Unmarshal([]byte(out), &data)
+				if err != nil {
+					logger.Error("the final rendered YAML file is not a valid yaml", slog.Any("error", err))
+					logger.Error("rendering the final YAML encountered an error. skip validation to view the broken file.")
+
+					os.Exit(1)
+				}
+			}
+
+			if !cliCfg.NoColor {
+				render := renderer.GetRenderer(nil, nil, false, true, false, false, false)
+				coloredFinalData, err := render.Color(renderer.TypeYAML, string(out))
+				if err != nil {
+					logger.Error("color coding yaml errored", slog.Any("error", err))
+				} else {
+					out = yamll.Yaml(coloredFinalData)
+				}
+			}
+
+			if _, err = writer.Write([]byte(out)); err != nil {
+				return err
+			}
+
+			return nil
+		},
+	}
+
+	buildCommand.SilenceErrors = true
+	registerCommonFlags(buildCommand)
+
+	buildCommand.PersistentFlags().StringVarP(&cliCfg.ToFile, "to-file", "", "",
+		"name of the file to which the final imported yaml should be written to")
+	buildCommand.PersistentFlags().BoolVarP(&cliCfg.NoValidation, "no-validation", "", false,
+		"when enabled it skips validating the final generated YAML file")
+
+	return buildCommand
+}
+
 func getTreeCommand() *cobra.Command {
-	importCommand := &cobra.Command{
+	treeCommand := &cobra.Command{
 		Use:     "tree [flags]",
-		Short:   "builds dependency trees from sub-YAML files defined as libraries",
+		Short:   "Builds dependency trees from sub-YAML files defined as libraries",
 		Long:    "Identifies dependencies and builds the dependency tree for the base yaml",
 		Example: `yamll tree --file path/to/file.yaml`,
 		PreRunE: setCLIClient,
-		RunE: func(cmd *cobra.Command, args []string) error {
+		RunE: func(_ *cobra.Command, _ []string) error {
 			cfg := yamll.New(yamllCfg.Merge, yamllCfg.LogLevel, yamllCfg.Limiter, cliCfg.Files...)
 			cfg.SetLogger()
 			logger = cfg.GetLogger()
@@ -125,10 +183,10 @@ func getTreeCommand() *cobra.Command {
 		},
 	}
 
-	importCommand.SilenceErrors = true
-	registerCommonFlags(importCommand)
+	treeCommand.SilenceErrors = true
+	registerCommonFlags(treeCommand)
 
-	return importCommand
+	return treeCommand
 }
 
 func versionConfig(_ *cobra.Command, _ []string) error {
@@ -138,10 +196,10 @@ func versionConfig(_ *cobra.Command, _ []string) error {
 		os.Exit(1)
 	}
 
-	writer := bufio.NewWriter(os.Stdout)
+	versionWriter := bufio.NewWriter(os.Stdout)
 	versionInfo := fmt.Sprintf("%s \n", strings.Join([]string{"yamll version", string(buildInfo)}, ": "))
 
-	if _, err = writer.WriteString(versionInfo); err != nil {
+	if _, err = versionWriter.WriteString(versionInfo); err != nil {
 		logger.Error(err.Error())
 		os.Exit(1)
 	}
@@ -152,7 +210,7 @@ func versionConfig(_ *cobra.Command, _ []string) error {
 			logger.Error(err.Error())
 			os.Exit(1)
 		}
-	}(writer)
+	}(versionWriter)
 
 	return nil
 }

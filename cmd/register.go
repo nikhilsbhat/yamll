@@ -29,6 +29,7 @@ func getYamllCommands() *cobra.Command {
 	command := new(yamllCommands)
 	command.commands = append(command.commands, getImportCommand())
 	command.commands = append(command.commands, getTreeCommand())
+	command.commands = append(command.commands, getBuildCommand())
 	command.commands = append(command.commands, getVersionCommand())
 
 	return command.prepareCommands()

@@ -18,6 +18,9 @@ linters:
     - dupword
     - tagalign
     - testpackage
+    - perfsprint
+    - testifylint
+    - mnd
 
 issues:
   exclude-rules:

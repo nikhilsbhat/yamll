@@ -20,20 +20,25 @@ func Test_getDependencyData2(t *testing.T) {
 ##++https://run.mocky.io/v3/92e08b25-dd1f-4dd0-bc55-9649b5b896c9`
 
 		stringReader := strings.NewReader(absYamlFilePath)
+
 		scanner := bufio.NewScanner(stringReader)
+
 		t.Setenv("USERNAME", "nikhil")
 
 		t.Setenv("PASSWORD", "super-secret-password")
 
 		cfg := New(false, "DEBUG", "")
+
 		cfg.SetLogger()
 
 		dependencies := make([]*Dependency, 0)
+
 		for scanner.Scan() {
 			line := scanner.Text()
 			if strings.Contains(line, "##++") {
 				dependency, err := cfg.getDependencyData(line)
 				assert.NoError(t, err)
+
 				dependencies = append(dependencies, dependency)
 			}
 		}
@@ -52,6 +57,7 @@ func TestDependency_ReadData(t *testing.T) {
 		}
 
 		cfg := New(false, "DEBUG", "")
+
 		cfg.SetLogger()
 
 		out, err := dependency.readData(false, cfg.GetLogger())
@@ -82,9 +88,11 @@ func TestConfig_ResolveDependencies2(t *testing.T) {
 func TestDependency_Git(t *testing.T) {
 	t.Run("", func(t *testing.T) {
 		cfg := New(false, "DEBUG", "")
+
 		cfg.SetLogger()
 
 		t.Setenv("GITHUB_TOKEN", "testkey")
+
 		dependency := Dependency{
 			// Path: "git+https://github.com/nikhilsbhat/yamll@main?path=internal/fixtures/base.yaml",
 			Path: "git+ssh://git@github.com:nikhilsbhat/yamll@main?path=internal/fixtures/base.yaml",

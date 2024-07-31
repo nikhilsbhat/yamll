@@ -99,6 +99,16 @@ func (cfg *Config) YamlTree(color bool) error {
 	return err
 }
 
+// YamlBuild builds YAML by substituting all anchors and aliases defined in sub-YAML files defined as libraries.
+func (cfg *Config) YamlBuild() (Yaml, error) {
+	dependencyRoutes, err := cfg.ResolveDependencies(make(map[string]*YamlData), cfg.Files...)
+	if err != nil {
+		return "", &errors.YamllError{Message: fmt.Sprintf("fetching dependency tree errored with: '%v'", err)}
+	}
+
+	return YamlRoutes(dependencyRoutes).Build()
+}
+
 // New returns new instance of Config with passed parameters.
 func New(effective bool, logLevel, limiter string, paths ...string) *Config {
 	dependencies := make([]*Dependency, 0)

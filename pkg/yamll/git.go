@@ -115,13 +115,16 @@ func (dependency *Dependency) getGitMetaData() (*gitMeta, error) {
 		}
 
 		gitBaseURL = fmt.Sprintf("git@%v", gitParsedURL[1])
+
 		remainingPath = fmt.Sprintf("https://%v@%v", gitParsedURL[1], gitParsedURL[2])
 	} else {
 		gitParsedURL := strings.SplitN(dependency.Path, "@", 2)
 		if len(gitParsedURL) != 2 {
 			return nil, &errors.YamllError{Message: fmt.Sprintf("unable to parse git url '%s'", dependency.Path)}
 		}
+
 		gitBaseURL = gitParsedURL[0]
+
 		remainingPath = dependency.Path
 	}
 

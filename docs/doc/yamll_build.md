@@ -1,32 +1,28 @@
-## yamll import
+## yamll build
 
-Imports defined sub-YAML files as libraries
+Builds YAML files substituting imports
 
 ### Synopsis
 
-Identifies dependency tree and imports them in the order to generate one single YAML file
+Builds YAML by substituting all anchors and aliases defined in sub-YAML files defined as libraries
 
 ```
-yamll import [flags]
+yamll build [flags]
 ```
 
 ### Examples
 
 ```
-yamll import --file path/to/file.yaml
-yamll import --file path/to/file.yaml --no-validation
-yamll import --file path/to/file.yaml --effective
+yamll build --file path/to/file.yaml
 ```
 
 ### Options
 
 ```
-      --explode            when enabled, it expands any aliases and anchor tags present
   -f, --file stringArray   root yaml files to be used for importing
-  -h, --help               help for import
+  -h, --help               help for build
       --limiter string     limiters to separate the yaml files post merging (default "---")
       --log-level string   log level for the yamll (default "INFO")
-      --merge              when enabled it merges the yaml files effectively
       --no-color           when enabled the output would not be color encoded
       --no-validation      when enabled it skips validating the final generated YAML file
       --to-file string     name of the file to which the final imported yaml should be written to
