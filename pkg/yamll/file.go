@@ -10,16 +10,16 @@ import (
 )
 
 // File reads the data from the File import.
-func (dependency *Dependency) File(_ *slog.Logger) (string, error) {
+func (dependency *Dependency) File(_ *slog.Logger) (File, error) {
 	absYamlFilePath, err := filepath.Abs(dependency.Path)
 	if err != nil {
-		return "", err
+		return File{}, err
 	}
 
 	yamlFileData, err := os.ReadFile(absYamlFilePath)
 	if err != nil {
-		return "", &errors.YamllError{Message: fmt.Sprintf("reading YAML dependency errored with: '%v'", err)}
+		return File{}, &errors.YamllError{Message: fmt.Sprintf("reading YAML dependency errored with: '%v'", err)}
 	}
 
-	return string(yamlFileData), nil
+	return File{Name: absYamlFilePath, Data: string(yamlFileData)}, nil
 }

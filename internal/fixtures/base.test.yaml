@@ -1,0 +1,3 @@
+##++internal/fixtures/base4.yaml
+base_test: &base_test
+  base_name: base_test

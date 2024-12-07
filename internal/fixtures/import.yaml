@@ -1,5 +1,7 @@
 ##++internal/fixtures/base.yaml
 ##++internal/fixtures/base2.yaml
+##++internal/fixtures/*.test.yaml
+##++internal/fixtures/*.testing.yaml
 ##++git+https://github.com/nikhilsbhat/yamll@main?path=internal/fixtures/base2.yaml;{"user_name":"${GIT_USERNAME}","password":"${GITHUB_TOKEN}"}
 ##++http://localhost:3000/database.yaml
 #++path/to/test.yaml
@@ -19,3 +21,8 @@ workflow:
 
 config1:
   apiVersion3: v2
+
+base:
+  <<: *base_test
+  <<: *base2_test
+  <<: *base3_test

@@ -17,6 +17,7 @@ const (
 	TypeURL               = "http"
 	TypeGit               = "git+"
 	TypeFile              = "file"
+	TypeFilePattern       = "pattern"
 	defaultDirPermissions = 0o755
 )
 
@@ -33,7 +34,7 @@ type Auth struct {
 	UserName string `json:"user_name,omitempty" yaml:"user_name,omitempty"`
 	// Password to be used during authenticating remote server.
 	Password string `json:"password,omitempty" yaml:"password,omitempty"`
-	// BarerToken, Define this when you have token and it should be used during authenticating remote server.
+	// BarerToken, Define this when you have token, and it should be used during authenticating remote server.
 	BarerToken string `json:"barer_token,omitempty" yaml:"barer_token,omitempty"`
 	// CaContent, is content of CA bundle if in case you needs to connect to remote server via CA auth.
 	CaContent string `json:"ca_content,omitempty" yaml:"ca_content,omitempty"`
@@ -53,12 +54,14 @@ func (cfg *Config) ResolveDependencies(routes map[string]*YamlData, dependencies
 			continue
 		}
 
-		yamlFileData, err := dependencyPath.readData(cfg.Merge, cfg.log)
+		yamlFile, err := dependencyPath.readData(cfg.Merge, cfg.log)
 		if err != nil {
 			return nil, &errors.YamllError{Message: fmt.Sprintf("reading YAML file errored with: '%v'", err)}
 		}
 
-		dependencies, err := cfg.extractDependencies(yamlFileData)
+		cfg.log.Debug("the absolute path of the file which was read", slog.String("path", yamlFile.Name))
+
+		dependencies, err := cfg.extractDependencies(yamlFile.Data)
 		if err != nil {
 			return nil, err
 		}
@@ -67,7 +70,7 @@ func (cfg *Config) ResolveDependencies(routes map[string]*YamlData, dependencies
 			cfg.Root = true
 		}
 
-		routes[dependencyPath.Path] = &YamlData{Root: rootFile, File: dependencyPath.Path, DataRaw: yamlFileData, Dependency: dependencies, Index: fileHierarchy}
+		routes[dependencyPath.Path] = &YamlData{Root: rootFile, File: dependencyPath.Path, DataRaw: yamlFile.Data, Dependency: dependencies, Index: fileHierarchy}
 
 		if len(dependencies) != 0 {
 			dependencyRoutes, err := cfg.ResolveDependencies(routes, dependencies...)
@@ -112,7 +115,7 @@ func (cfg *Config) getDependencyData(dependency string) (*Dependency, error) {
 }
 
 // readData actually reads the data from the identified import.
-func (dependency *Dependency) readData(effective bool, log *slog.Logger) (string, error) {
+func (dependency *Dependency) readData(effective bool, log *slog.Logger) (File, error) {
 	log.Debug("dependency file type identified", slog.String("type", dependency.Type), slog.Any("path", dependency.Path))
 
 	if effective {
@@ -126,8 +129,10 @@ func (dependency *Dependency) readData(effective bool, log *slog.Logger) (string
 		return dependency.Git(log)
 	case dependency.Type == TypeFile:
 		return dependency.File(log)
+	case dependency.Type == TypeFilePattern:
+		return dependency.FilePattern(log)
 	default:
-		return "", &errors.YamllError{Message: fmt.Sprintf("reading data from of type '%s' is not supported", dependency.Type)}
+		return File{}, &errors.YamllError{Message: fmt.Sprintf("reading data from of type '%s' is not supported", dependency.Type)}
 	}
 }
 
@@ -156,6 +161,8 @@ func (cfg *Config) extractDependencies(yamlFileData string) ([]*Dependency, erro
 
 func (dependency *Dependency) identifyType() {
 	switch {
+	case isPattern(dependency.Path):
+		dependency.Type = TypeFilePattern
 	case strings.HasPrefix(dependency.Path, TypeURL):
 		dependency.Type = TypeURL
 	case strings.HasPrefix(dependency.Path, TypeGit):
@@ -163,4 +170,8 @@ func (dependency *Dependency) identifyType() {
 	default:
 		dependency.Type = TypeFile
 	}
+}
+
+func isPattern(input string) bool {
+	return strings.ContainsAny(input, "*?[]") && !strings.Contains(input, "://")
 }

@@ -24,10 +24,10 @@ type gitMeta struct {
 }
 
 // Git reads the data from the Git import.
-func (dependency *Dependency) Git(log *slog.Logger) (string, error) {
+func (dependency *Dependency) Git(log *slog.Logger) (File, error) {
 	gitMetaData, err := dependency.getGitMetaData()
 	if err != nil {
-		return "", err
+		return File{}, err
 	}
 
 	cloneOptions := &git.CloneOptions{
@@ -45,12 +45,12 @@ func (dependency *Dependency) Git(log *slog.Logger) (string, error) {
 
 		sshKEY, err := os.ReadFile(dependency.Auth.SSHKey)
 		if err != nil {
-			return "", &errors.YamllError{Message: fmt.Sprintf("reading ssh key '%s' errored with %v", dependency.Auth.SSHKey, err)}
+			return File{}, &errors.YamllError{Message: fmt.Sprintf("reading ssh key '%s' errored with %v", dependency.Auth.SSHKey, err)}
 		}
 
 		signer, err := ssh.ParsePrivateKey(sshKEY)
 		if err != nil {
-			return "", err
+			return File{}, err
 		}
 
 		cloneOptions.Auth = &gitssh.PublicKeys{User: "git", Signer: signer}
@@ -72,7 +72,7 @@ func (dependency *Dependency) Git(log *slog.Logger) (string, error) {
 
 	tempDir := filepath.Join(os.TempDir(), "yamll_git"+uuid.New().String())
 	if err = os.MkdirAll(tempDir, defaultDirPermissions); err != nil {
-		return "", &errors.YamllError{Message: "failed to crete temp directory for cloning git material"}
+		return File{}, &errors.YamllError{Message: "failed to crete temp directory for cloning git material"}
 	}
 
 	log.Debug("cloning git repo", slog.String("repo", gitMetaData.gitBaseURL), slog.String("dir", tempDir))
@@ -85,19 +85,21 @@ func (dependency *Dependency) Git(log *slog.Logger) (string, error) {
 
 	repo, err := git.PlainClone(tempDir, false, cloneOptions)
 	if err != nil {
-		return "", err
+		return File{}, err
 	}
 
 	if err = checkoutRevision(repo, gitMetaData.referenceName); err != nil {
-		return "", err
+		return File{}, err
 	}
 
-	gitFileContent, err := os.ReadFile(filepath.Join(tempDir, gitMetaData.path))
+	yamlFilePath := filepath.Join(tempDir, gitMetaData.path)
+
+	gitFileContent, err := os.ReadFile(yamlFilePath)
 	if err != nil {
-		return "", &errors.YamllError{Message: fmt.Sprintf("reading content from file of git errored with '%v'", err)}
+		return File{}, &errors.YamllError{Message: fmt.Sprintf("reading content from file of git errored with '%v'", err)}
 	}
 
-	return string(gitFileContent), nil
+	return File{Name: yamlFilePath, Data: string(gitFileContent)}, nil
 }
 
 //nolint:gomnd

@@ -82,12 +82,24 @@ YAML files can specify imports using the comments that starts with `##++`. `yaml
 
 It can construct the dependency tree and import them in the correct order, with each dependency able to have its own defined dependencies.
 
-Following example tries to illustrate all of them.
+#### Handling Wildcards
+
+`YAMLL` supports importing YAML files using wildcard patterns.
+
+Filenames matching the pattern are excluded from visibility in the `tree`, `import`, and `build` commands. Instead, the data from all matching files is aggregated under the specified pattern.
+
+For example, the pattern `##++internal/fixtures/*.test.yaml` might match files like `one.test.yaml`, `two.test.yaml`, and `three.test.yaml`. 
+
+However, their individual filenames (`one.test.yaml`, `two.test.yaml`, and `three.test.yaml`) will not be displayed in the above commands.</br> 
+Instead, their combined data will appear under the pattern `##++internal/fixtures/*.test.yaml`. (this makes it easier to manage the cyclic dependency and many others)
+
+Following examples tries to illustrate all of them.
 
 **Example** `root.yaml`:
 
 ```yaml
 ##++internal/fixtures/base.yaml
+##++internal/fixtures/*.test.yaml
 ##++git+https://github.com/nikhilsbhat/yamll@main?path=internal/fixtures/base2.yaml;{"user_name":"${GIT_USERNAME}","password":"${GITHUB_TOKEN}"}
 ##++http://localhost:3000/database.yaml
 
@@ -130,6 +142,27 @@ organizations:
   - microsoft
 ```
 
+**Example** `one.test.yaml`:
+```yaml
+editor:
+  - intellij
+  - visual_code
+```
+
+**Example** `two.test.yaml`:
+```yaml
+movies:
+  - animation
+  - comedy
+```
+
+**Example** `three.test.yaml`:
+```yaml
+ott:
+  - netflix
+  - prime_video
+```
+
 `database.yaml` retrieved from `URL` source:
 ```yaml
 mysqldatabase: &mysqldatabase
@@ -159,6 +192,18 @@ default: &default
     key1: value1
     key2: value2
 config1: *default
+---
+# Source: internal/fixtures/*.test.yaml
+
+editor:
+   - intellij
+   - visual_code
+ott:
+   - netflix
+   - prime_video
+movies:
+   - animation
+   - comedy
 ---
 # Source: https://github.com/nikhilsbhat/yamll@main?path=internal/fixtures/base2.yaml
 names:
@@ -201,6 +246,7 @@ yamll tree -f import.yaml
     │   └── internal/fixtures/base3.yaml
     ├── internal/fixtures/base2.yaml
     │   └── internal/fixtures/base3.yaml
+    ├── internal/fixtures/*.test.yaml
     ├── https://github.com/nikhilsbhat/yamll@main?path=internal/fixtures/base2.yaml
     │   └── internal/fixtures/base3.yaml
     └── http://localhost:3000/database.yaml

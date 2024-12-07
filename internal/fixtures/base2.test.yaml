@@ -1,0 +1,4 @@
+##++internal/fixtures/base5.yaml
+base2_test: &base2_test
+  base2_name: base2_test
+  <<: *movies

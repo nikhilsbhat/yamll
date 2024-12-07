@@ -1,0 +1,4 @@
+##++internal/fixtures/base4.yaml
+base3_test: &base3_test
+  base3_name: base3_test
+  <<: *editor

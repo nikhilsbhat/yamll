@@ -16,7 +16,7 @@ type FetchData interface {
 }
 
 // URL reads the data from the URL import.
-func (dependency *Dependency) URL(log *slog.Logger) (string, error) {
+func (dependency *Dependency) URL(log *slog.Logger) (File, error) {
 	httpClient := resty.New()
 
 	if len(dependency.Auth.BarerToken) != 0 {
@@ -43,8 +43,8 @@ func (dependency *Dependency) URL(log *slog.Logger) (string, error) {
 
 	resp, err := httpClient.R().Get(dependency.Path)
 	if err != nil {
-		return "", err
+		return File{}, err
 	}
 
-	return resp.String(), err
+	return File{Name: dependency.Path, Data: resp.String()}, err
 }
