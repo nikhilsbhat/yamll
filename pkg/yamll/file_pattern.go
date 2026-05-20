@@ -10,8 +10,9 @@ import (
 )
 
 type File struct {
-	Name string
-	Data string
+	Name   string
+	Data   string
+	Source []File
 }
 
 // FilePattern reads the data from the Files matching the pattern import.
@@ -24,7 +25,10 @@ func (dependency *Dependency) FilePattern(log *slog.Logger) (File, error) {
 		return File{}, err
 	}
 
-	var yamlFilesData string
+	var (
+		sources       []File
+		yamlFilesData string
+	)
 
 	log.Debug("the files matching the pattern are", slog.Any("pattern", dependency.Path), slog.Any("files-matched", filesMatching))
 
@@ -35,9 +39,10 @@ func (dependency *Dependency) FilePattern(log *slog.Logger) (File, error) {
 		}
 
 		yamlFilesData = yamlFilesData + "\n" + string(yamlFileData)
+		sources = append(sources, File{Name: fileMatching, Data: string(yamlFileData)})
 	}
 
-	return File{Name: absFilePattern, Data: yamlFilesData}, nil
+	return File{Name: absFilePattern, Data: yamlFilesData, Source: sources}, nil
 }
 
 func (dependency *Dependency) FilesFromPattern() ([]File, error) {

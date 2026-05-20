@@ -1,3 +1,3 @@
-movies: &movies
-  - animation
-  - comedy
+movies: &movies2
+  - animations
+  - comedys

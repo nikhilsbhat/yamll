@@ -193,6 +193,54 @@ func getTreeCommand() *cobra.Command {
 	return treeCommand
 }
 
+func getTraceCommand() *cobra.Command {
+	traceCommand := &cobra.Command{
+		Use:   "trace [flags] <file:path|path>",
+		Short: "Traces a generated YAML path back to its source file",
+		Long:  "Traces a generated YAML path back to the source YAML file and line that produced it.",
+		Example: `yamll trace internal/fixtures/import.yaml:base.movies
+yamll trace --file internal/fixtures/import.yaml base.movies`,
+		Args:    cobra.ExactArgs(1),
+		PreRunE: setCLIClient,
+		RunE: func(_ *cobra.Command, args []string) error {
+			rootFile, tracePath := parseTraceTarget(args[0])
+			if rootFile != "" {
+				cliCfg.Files = []string{rootFile}
+			}
+
+			cfg := yamll.New(false, yamllCfg.LogLevel, yamllCfg.Limiter, cliCfg.Files...)
+			cfg.SetLogger()
+			logger = cfg.GetLogger()
+
+			trace, err := cfg.Trace(tracePath)
+			if err != nil {
+				logger.Error("errored tracing yaml path", slog.Any("err", err))
+				os.Exit(1)
+			}
+
+			if _, err = fmt.Fprintf(writer, "origin: %s\n", trace.Origin); err != nil {
+				return err
+			}
+
+			return nil
+		},
+	}
+
+	traceCommand.SilenceErrors = true
+	registerCommonFlags(traceCommand)
+
+	return traceCommand
+}
+
+func parseTraceTarget(target string) (string, string) {
+	rootFile, tracePath, found := strings.Cut(target, ":")
+	if !found {
+		return "", target
+	}
+
+	return rootFile, tracePath
+}
+
 func versionConfig(_ *cobra.Command, _ []string) error {
 	buildInfo, err := json.Marshal(version.GetBuildInfo())
 	if err != nil {

@@ -222,3 +222,70 @@ func TestConfig_YamlBuildKeepsRootKeyOrder(t *testing.T) {
 	require.Less(t, strings.Index(string(out), "third:"), strings.Index(string(out), "first:"))
 	require.Less(t, strings.Index(string(out), "first:"), strings.Index(string(out), "second:"))
 }
+
+func TestConfig_TraceFindsDirectAndMergedOrigins(t *testing.T) {
+	dir := t.TempDir()
+	rootFile := filepath.Join(dir, "root.yaml")
+	baseFile := filepath.Join(dir, "base.yaml")
+
+	require.NoError(t, os.WriteFile(rootFile, []byte(strings.Join([]string{
+		"##++" + baseFile,
+		"service:",
+		"  <<: *service_base",
+		"  name: api",
+		"",
+	}, "\n")), 0o600))
+	require.NoError(t, os.WriteFile(baseFile, []byte(strings.Join([]string{
+		"service_base: &service_base",
+		"  metadata:",
+		"    labels:",
+		"      app: api",
+		"",
+	}, "\n")), 0o600))
+
+	cfg := yamll.New(false, "DEBUG", "---", rootFile)
+	cfg.SetLogger()
+
+	directOrigin, err := cfg.Trace("service.name")
+	require.NoError(t, err)
+	require.Equal(t, displayTestPath(rootFile)+":4", directOrigin.Origin)
+
+	mergedOrigin, err := cfg.Trace("service.metadata.labels")
+	require.NoError(t, err)
+	require.Equal(t, displayTestPath(baseFile)+":3", mergedOrigin.Origin)
+}
+
+func TestConfig_TraceFindsPatternFileOrigin(t *testing.T) {
+	dir := t.TempDir()
+	rootFile := filepath.Join(dir, "root.yaml")
+	pattern := filepath.Join(dir, "*.test.yaml")
+	baseFile := filepath.Join(dir, "base.test.yaml")
+
+	require.NoError(t, os.WriteFile(rootFile, []byte(strings.Join([]string{
+		"##++" + pattern,
+		"base:",
+		"  <<: *base_test",
+		"",
+	}, "\n")), 0o600))
+	require.NoError(t, os.WriteFile(baseFile, []byte(strings.Join([]string{
+		"base_test: &base_test",
+		"  base_name: base_test",
+		"",
+	}, "\n")), 0o600))
+
+	cfg := yamll.New(false, "DEBUG", "---", rootFile)
+	cfg.SetLogger()
+
+	origin, err := cfg.Trace("base.base_name")
+	require.NoError(t, err)
+	require.Equal(t, displayTestPath(baseFile)+":2", origin.Origin)
+}
+
+func displayTestPath(path string) string {
+	relPath, err := filepath.Rel(".", path)
+	if err != nil || strings.HasPrefix(relPath, "..") {
+		return path
+	}
+
+	return relPath
+}

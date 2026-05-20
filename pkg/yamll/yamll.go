@@ -15,6 +15,7 @@ type YamlData struct {
 	File       string        `json:"file,omitempty" yaml:"file,omitempty"`
 	DataRaw    string        `json:"data_raw,omitempty" yaml:"data_raw,omitempty"`
 	Dependency []*Dependency `json:"dependency,omitempty" yaml:"dependency,omitempty"`
+	SourceFile []File        `json:"-" yaml:"-"`
 }
 
 // Config holds the information of yaml files to be parsed.

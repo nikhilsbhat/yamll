@@ -13,6 +13,8 @@ import (
 // Data is a data type that holds de-serialised YAML data.
 type Data map[string]any
 
+var anchorPattern = regexp.MustCompile(`(^|[\s\[{,])&([A-Za-z0-9_-]+)`)
+
 // EffectiveMerge merges multiple YAML contents effectively.
 func (yml Yaml) EffectiveMerge() (Yaml, error) {
 	yamlMapMerged := make(Data)
@@ -47,7 +49,6 @@ func (yml Yaml) EffectiveMerge() (Yaml, error) {
 
 func dedupeAnchorReferences(yamlData string) string {
 	seen := make(map[string]int)
-	anchorPattern := regexp.MustCompile(`(^|[\s\[{,])&([A-Za-z0-9_-]+)`)
 
 	return anchorPattern.ReplaceAllStringFunc(yamlData, func(anchorMatch string) string {
 		prefix, name, found := strings.Cut(anchorMatch, "&")
