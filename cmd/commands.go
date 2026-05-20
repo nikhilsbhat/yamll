@@ -60,9 +60,10 @@ yamll import --file path/to/file.yaml --effective`,
 
 			if !cliCfg.NoValidation {
 				logger.Debug("validating final yaml for syntax")
-				var data interface{}
-				err = yaml.Unmarshal([]byte(out), &data)
-				if err != nil {
+
+				var data any
+
+				if err = yaml.Unmarshal([]byte(out), &data); err != nil {
 					logger.Error("the final rendered YAML file is not a valid yaml", slog.Any("error", err))
 					logger.Error("rendering the final YAML encountered an error. skip validation to view the broken file.")
 
@@ -82,6 +83,7 @@ yamll import --file path/to/file.yaml --effective`,
 
 			if !cliCfg.NoColor {
 				render := renderer.GetRenderer(nil, nil, false, true, false, false, false)
+
 				coloredFinalData, err := render.Color(renderer.TypeYAML, string(out))
 				if err != nil {
 					logger.Error("color coding yaml errored", slog.Any("error", err))
@@ -124,9 +126,10 @@ func getBuildCommand() *cobra.Command {
 
 			if !cliCfg.NoValidation {
 				logger.Debug("validating final yaml for syntax")
-				var data interface{}
-				err = yaml.Unmarshal([]byte(out), &data)
-				if err != nil {
+
+				var data any
+
+				if err = yaml.Unmarshal([]byte(out), &data); err != nil {
 					logger.Error("the final rendered YAML file is not a valid yaml", slog.Any("error", err))
 					logger.Error("rendering the final YAML encountered an error. skip validation to view the broken file.")
 
@@ -136,6 +139,7 @@ func getBuildCommand() *cobra.Command {
 
 			if !cliCfg.NoColor {
 				render := renderer.GetRenderer(nil, nil, false, true, false, false, false)
+
 				coloredFinalData, err := render.Color(renderer.TypeYAML, string(out))
 				if err != nil {
 					logger.Error("color coding yaml errored", slog.Any("error", err))

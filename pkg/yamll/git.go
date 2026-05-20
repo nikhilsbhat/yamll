@@ -110,18 +110,23 @@ func (dependency *Dependency) getGitMetaData() (*gitMeta, error) {
 
 	var gitBaseURL, remainingPath string
 
+	const (
+		gitURLElement        = 3
+		correctGitURLElement = 2
+	)
+
 	if isSSH {
-		gitParsedURL := strings.SplitN(dependency.Path, "@", 3)
-		if len(gitParsedURL) != 3 {
+		gitParsedURL := strings.SplitN(dependency.Path, "@", gitURLElement)
+		if len(gitParsedURL) != gitURLElement {
 			return nil, &errors.YamllError{Message: fmt.Sprintf("unable to split git url '%s'", dependency.Path)}
 		}
 
 		gitBaseURL = fmt.Sprintf("git@%v", gitParsedURL[1])
 
-		remainingPath = fmt.Sprintf("https://%v@%v", gitParsedURL[1], gitParsedURL[2])
+		remainingPath = fmt.Sprintf("https://%v@%v", gitParsedURL[1], gitParsedURL[correctGitURLElement])
 	} else {
-		gitParsedURL := strings.SplitN(dependency.Path, "@", 2)
-		if len(gitParsedURL) != 2 {
+		gitParsedURL := strings.SplitN(dependency.Path, "@", correctGitURLElement)
+		if len(gitParsedURL) != correctGitURLElement {
 			return nil, &errors.YamllError{Message: fmt.Sprintf("unable to parse git url '%s'", dependency.Path)}
 		}
 
@@ -130,13 +135,13 @@ func (dependency *Dependency) getGitMetaData() (*gitMeta, error) {
 		remainingPath = dependency.Path
 	}
 
-	parsedRef := strings.SplitN(strings.SplitN(remainingPath, "?", 2)[0], "@", 2)
-	if len(parsedRef) != 2 {
+	parsedRef := strings.SplitN(strings.SplitN(remainingPath, "?", correctGitURLElement)[0], "@", correctGitURLElement)
+	if len(parsedRef) != correctGitURLElement {
 		return nil, &errors.YamllError{Message: fmt.Sprintf("unable to parse ref from '%s'", remainingPath)}
 	}
 
-	parsedPath := strings.SplitN(strings.SplitN(remainingPath, "?", 2)[1], "=", 2)
-	if len(parsedPath) != 2 {
+	parsedPath := strings.SplitN(strings.SplitN(remainingPath, "?", correctGitURLElement)[1], "=", correctGitURLElement)
+	if len(parsedPath) != correctGitURLElement {
 		return nil, &errors.YamllError{Message: fmt.Sprintf("unable to parse path from '%s'", remainingPath)}
 	}
 

@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
-	"regexp"
 	"strings"
 
 	"dario.cat/mergo"
@@ -23,9 +22,10 @@ const (
 
 // Dependency holds the information of the dependencies defined the yaml file.
 type Dependency struct {
-	Path string `json:"file,omitempty" yaml:"file,omitempty"`
-	Type string `json:"type,omitempty" yaml:"type,omitempty"`
-	Auth Auth   `json:"auth,omitempty" yaml:"auth,omitempty"`
+	Path        string `json:"file,omitempty" yaml:"file,omitempty"`
+	Type        string `json:"type,omitempty" yaml:"type,omitempty"`
+	Auth        Auth   `json:"auth,omitempty" yaml:"auth,omitempty"`
+	excludePath string
 }
 
 // Auth holds the authentication information to resolve the remote yaml files.
@@ -54,14 +54,14 @@ func (cfg *Config) ResolveDependencies(routes map[string]*YamlData, dependencies
 			continue
 		}
 
-		yamlFile, err := dependencyPath.readData(cfg.Merge, cfg.log)
+		yamlFile, err := dependencyPath.ReadData(cfg.Merge, cfg.log)
 		if err != nil {
 			return nil, &errors.YamllError{Message: fmt.Sprintf("reading YAML file errored with: '%v'", err)}
 		}
 
 		cfg.log.Debug("the absolute path of the file which was read", slog.String("path", yamlFile.Name))
 
-		dependencies, err := cfg.extractDependencies(yamlFile.Data)
+		dependencies, yamlData, err := cfg.extractDependencies(yamlFile.Data, yamlFile.Name)
 		if err != nil {
 			return nil, err
 		}
@@ -70,7 +70,7 @@ func (cfg *Config) ResolveDependencies(routes map[string]*YamlData, dependencies
 			cfg.Root = true
 		}
 
-		routes[dependencyPath.Path] = &YamlData{Root: rootFile, File: dependencyPath.Path, DataRaw: yamlFile.Data, Dependency: dependencies, Index: fileHierarchy}
+		routes[dependencyPath.Path] = &YamlData{Root: rootFile, File: dependencyPath.Path, DataRaw: yamlData, Dependency: dependencies, Index: fileHierarchy}
 
 		if len(dependencies) != 0 {
 			dependencyRoutes, err := cfg.ResolveDependencies(routes, dependencies...)
@@ -87,18 +87,32 @@ func (cfg *Config) ResolveDependencies(routes map[string]*YamlData, dependencies
 	return routes, nil
 }
 
-// getDependencyData reads the imports analyses it and generates Dependency data for it.
-func (cfg *Config) getDependencyData(dependency string) (*Dependency, error) {
-	imports := strings.Split(dependency, ";")
-	runeSlice := []rune(imports[0])
+// GetDependencyData reads the imports analyses it and generates Dependency data for it.
+func (cfg *Config) GetDependencyData(dependency string) (*Dependency, error) {
+	importStatement := strings.TrimSpace(dependency)
+	if !strings.HasPrefix(importStatement, "##++") {
+		return nil, &errors.YamllError{Message: fmt.Sprintf("invalid import statement: %q", dependency)}
+	}
 
-	dependencyData := &Dependency{Path: string(runeSlice[4:])}
-	dependencyData.identifyType()
+	const (
+		lengthOfImportWIthAuth = 1
+		dependencyImportLength = 2
+	)
 
-	if len(imports) > 1 {
+	imports := strings.SplitN(strings.TrimSpace(strings.TrimPrefix(importStatement, "##++")), ";", dependencyImportLength)
+
+	dependencyPath := strings.TrimSpace(imports[0])
+	if dependencyPath == "" {
+		return nil, &errors.YamllError{Message: "import path cannot be empty"}
+	}
+
+	dependencyData := &Dependency{Path: dependencyPath}
+	dependencyData.IdentifyType()
+
+	if len(imports) > lengthOfImportWIthAuth {
 		cfg.log.Debug("auth is set for the import, and implementing the same", slog.String("dependency", dependency))
 
-		authConfig, err := envsubst.String(imports[1])
+		authConfig, err := envsubst.String(imports[lengthOfImportWIthAuth])
 		if err != nil {
 			return nil, err
 		}
@@ -114,22 +128,22 @@ func (cfg *Config) getDependencyData(dependency string) (*Dependency, error) {
 	return dependencyData, nil
 }
 
-// readData actually reads the data from the identified import.
-func (dependency *Dependency) readData(effective bool, log *slog.Logger) (File, error) {
+// ReadData actually reads the data from the identified import.
+func (dependency *Dependency) ReadData(effective bool, log *slog.Logger) (File, error) {
 	log.Debug("dependency file type identified", slog.String("type", dependency.Type), slog.Any("path", dependency.Path))
 
 	if effective {
 		log.Debug("reading yaml data in effective mode")
 	}
 
-	switch {
-	case dependency.Type == TypeURL:
+	switch dependency.Type {
+	case TypeURL:
 		return dependency.URL(log)
-	case dependency.Type == TypeGit:
+	case TypeGit:
 		return dependency.Git(log)
-	case dependency.Type == TypeFile:
+	case TypeFile:
 		return dependency.File(log)
-	case dependency.Type == TypeFilePattern:
+	case TypeFilePattern:
 		return dependency.FilePattern(log)
 	default:
 		return File{}, &errors.YamllError{Message: fmt.Sprintf("reading data from of type '%s' is not supported", dependency.Type)}
@@ -137,29 +151,43 @@ func (dependency *Dependency) readData(effective bool, log *slog.Logger) (File, 
 }
 
 // extractDependencies parses the dependencies from YAML file data.
-func (cfg *Config) extractDependencies(yamlFileData string) ([]*Dependency, error) {
-	var dependencies []*Dependency
+func (cfg *Config) extractDependencies(yamlFileData, sourcePath string) ([]*Dependency, string, error) {
+	var (
+		dependencies []*Dependency
+		cleaned      strings.Builder
+	)
 
 	scanner := bufio.NewScanner(strings.NewReader(yamlFileData))
 
 	for scanner.Scan() {
 		line := scanner.Text()
-		if strings.Contains(line, "##++") {
-			dependency, err := cfg.getDependencyData(line)
+		if strings.HasPrefix(strings.TrimSpace(line), "##++") {
+			dependency, err := cfg.GetDependencyData(line)
 			if err != nil {
-				return nil, err
+				return nil, "", err
 			}
 
 			dependencies = append(dependencies, dependency)
-			yamlFileData = strings.ReplaceAll(yamlFileData, line, "")
-			yamlFileData = regexp.MustCompile(`[\t\r\n]+`).ReplaceAllString(strings.TrimSpace(yamlFileData), "\n")
+
+			if dependency.Type == TypeFilePattern && sourcePath != "" {
+				dependency.excludePath = sourcePath
+			}
+
+			continue
 		}
+
+		cleaned.WriteString(line)
+		cleaned.WriteByte('\n')
 	}
 
-	return dependencies, scanner.Err()
+	if err := scanner.Err(); err != nil {
+		return nil, "", err
+	}
+
+	return dependencies, strings.TrimSpace(cleaned.String()), nil
 }
 
-func (dependency *Dependency) identifyType() {
+func (dependency *Dependency) IdentifyType() {
 	switch {
 	case isPattern(dependency.Path):
 		dependency.Type = TypeFilePattern

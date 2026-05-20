@@ -2,6 +2,7 @@ package yamll
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 
 	"dario.cat/mergo"
@@ -9,12 +10,13 @@ import (
 	"github.com/nikhilsbhat/yamll/pkg/errors"
 )
 
-// Data is a data type that holds de-serialised yaml data.
-type Data map[string]interface{}
+// Data is a data type that holds de-serialised YAML data.
+type Data map[string]any
 
-// EffectiveMerge merges multiple yaml contents effectively.
+// EffectiveMerge merges multiple YAML contents effectively.
 func (yml Yaml) EffectiveMerge() (Yaml, error) {
 	yamlMapMerged := make(Data)
+	anchorRefData := dedupeAnchorReferences(string(yml))
 
 	yamlDataS := strings.Split(string(yml), "---")
 
@@ -26,9 +28,7 @@ func (yml Yaml) EffectiveMerge() (Yaml, error) {
 
 		yamlMap := make(Data)
 
-		anchorRefs := strings.NewReader(string(yml))
-
-		if err := yaml.UnmarshalWithOptions([]byte(yamlData), &yamlMap, yaml.ReferenceReaders(anchorRefs)); err != nil {
+		if err := yaml.UnmarshalWithOptions([]byte(yamlData), &yamlMap, yaml.ReferenceReaders(strings.NewReader(anchorRefData))); err != nil {
 			return "", &errors.YamllError{Message: fmt.Sprintf("error deserialising YAML file: %v", err)}
 		}
 
@@ -45,13 +45,33 @@ func (yml Yaml) EffectiveMerge() (Yaml, error) {
 	return Yaml(yamlOut), nil
 }
 
-func mergeStructs(dest, src interface{}) error {
+func dedupeAnchorReferences(yamlData string) string {
+	seen := make(map[string]int)
+	anchorPattern := regexp.MustCompile(`(^|[\s\[{,])&([A-Za-z0-9_-]+)`)
+
+	return anchorPattern.ReplaceAllStringFunc(yamlData, func(anchorMatch string) string {
+		prefix, name, found := strings.Cut(anchorMatch, "&")
+		if !found {
+			return anchorMatch
+		}
+
+		seen[name]++
+
+		if seen[name] == 1 {
+			return anchorMatch
+		}
+
+		return fmt.Sprintf("%s&%s_yamll_duplicate_%d", prefix, name, seen[name])
+	})
+}
+
+func mergeStructs(dest, src any) error {
 	if err := mergo.Merge(dest, src, mergo.WithOverride); err != nil {
 		return err
 	}
 
-	destMap, destIsMap := dest.(map[string]interface{})
-	srcMap, srcIsMap := src.(map[string]interface{})
+	destMap, destIsMap := dest.(map[string]any)
+	srcMap, srcIsMap := src.(map[string]any)
 
 	if destIsMap && srcIsMap {
 		for key, srcVal := range srcMap {

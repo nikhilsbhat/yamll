@@ -3,9 +3,11 @@ package yamll
 import (
 	"crypto/tls"
 	"crypto/x509"
+	"fmt"
 	"log/slog"
 
 	"github.com/go-resty/resty/v2"
+	"github.com/nikhilsbhat/yamll/pkg/errors"
 )
 
 // FetchData implements the methods to fetch the yaml data from various sources.
@@ -44,6 +46,12 @@ func (dependency *Dependency) URL(log *slog.Logger) (File, error) {
 	resp, err := httpClient.R().Get(dependency.Path)
 	if err != nil {
 		return File{}, err
+	}
+
+	if resp.IsError() {
+		return File{}, &errors.YamlError{
+			Message: fmt.Sprintf("fetching URL '%s' failed with status %s", dependency.Path, resp.Status()),
+		}
 	}
 
 	return File{Name: dependency.Path, Data: resp.String()}, err

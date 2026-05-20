@@ -1,17 +1,18 @@
-package yamll
+package yamll_test
 
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/nikhilsbhat/yamll/pkg/yamll"
+	"github.com/stretchr/testify/require"
 )
 
 func TestCheckInterDependency(t *testing.T) {
 	t.Run("", func(t *testing.T) {
-		routes := map[string]*YamlData{
+		routes := map[string]*yamll.YamlData{
 			"internal/fixtures/import.yaml": {
 				File: "internal/fixtures/import.yaml",
-				Dependency: []*Dependency{
+				Dependency: []*yamll.Dependency{
 					{
 						Path: "internal/fixtures/base.yaml",
 						Type: "file",
@@ -24,7 +25,7 @@ func TestCheckInterDependency(t *testing.T) {
 			},
 			"internal/fixtures/base3.yaml": {
 				File: "internal/fixtures/base3.yaml",
-				Dependency: []*Dependency{
+				Dependency: []*yamll.Dependency{
 					{
 						Path: "internal/fixtures/base2.yaml",
 						Type: "file",
@@ -33,7 +34,7 @@ func TestCheckInterDependency(t *testing.T) {
 			},
 			"internal/fixtures/base2.yaml": {
 				File: "internal/fixtures/base2.yaml",
-				Dependency: []*Dependency{
+				Dependency: []*yamll.Dependency{
 					{
 						Path: "internal/fixtures/base3.yaml",
 						Type: "file",
@@ -45,7 +46,7 @@ func TestCheckInterDependency(t *testing.T) {
 		file := "internal/fixtures/base3.yaml"
 		dependency := "internal/fixtures/base2.yaml"
 
-		err := YamlRoutes(routes).checkInterDependency(file, dependency)
-		assert.NoError(t, err)
+		err := yamll.YamlRoutes(routes).CheckInterDependency(file, dependency)
+		require.Error(t, err)
 	})
 }

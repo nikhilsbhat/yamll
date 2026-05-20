@@ -59,6 +59,8 @@ type Yaml string
 //
 //nolint:lll
 func (cfg *Config) Yaml() (Yaml, error) {
+	cfg.Root = false
+
 	dependencyRoutes, err := cfg.ResolveDependencies(make(map[string]*YamlData), cfg.Files...)
 	if err != nil {
 		return "", &errors.YamllError{Message: fmt.Sprintf("fetching dependency tree errored with: '%v'", err)}
@@ -85,6 +87,8 @@ func (cfg *Config) Yaml() (Yaml, error) {
 
 // YamlTree constructs a dependency tree and displays it in a format similar to the Linux tree utility.
 func (cfg *Config) YamlTree(color bool) error {
+	cfg.Root = false
+
 	dependencyRoutes, err := cfg.ResolveDependencies(make(map[string]*YamlData), cfg.Files...)
 	if err != nil {
 		return &errors.YamllError{Message: fmt.Sprintf("fetching dependency tree errored with: '%v'", err)}
@@ -101,6 +105,8 @@ func (cfg *Config) YamlTree(color bool) error {
 
 // YamlBuild builds YAML by substituting all anchors and aliases defined in sub-YAML files defined as libraries.
 func (cfg *Config) YamlBuild() (Yaml, error) {
+	cfg.Root = false
+
 	dependencyRoutes, err := cfg.ResolveDependencies(make(map[string]*YamlData), cfg.Files...)
 	if err != nil {
 		return "", &errors.YamllError{Message: fmt.Sprintf("fetching dependency tree errored with: '%v'", err)}
@@ -115,7 +121,7 @@ func New(effective bool, logLevel, limiter string, paths ...string) *Config {
 
 	for _, path := range paths {
 		dependency := &Dependency{Path: path}
-		dependency.identifyType()
+		dependency.IdentifyType()
 		dependencies = append(dependencies, dependency)
 	}
 

@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/nikhilsbhat/yamll/pkg/yamll"
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestYaml_EffectiveMerge(t *testing.T) {
@@ -65,7 +65,8 @@ config1:
 		yamlFileContent := yamll.Yaml(yamlFile)
 
 		out, err := yamlFileContent.EffectiveMerge()
-		assert.NoError(t, err)
-		assert.Nil(t, out)
+		require.NoError(t, err)
+		require.Contains(t, string(out), "config1:")
+		require.Contains(t, string(out), "workflow:")
 	})
 }

@@ -9,21 +9,22 @@ import (
 )
 
 func (yamlRoutes YamlRoutes) Build() (Yaml, error) {
-	anchorRefs := strings.NewReader(yamlRoutes.getRawData())
+	anchorRefData := dedupeAnchorReferences(yamlRoutes.getRawData())
 
 	var output []byte
 
-	for _, dependencyRoute := range yamlRoutes {
+	for _, file := range yamlRoutes.OrderedFiles() {
+		dependencyRoute := yamlRoutes[file]
 		if !dependencyRoute.Root {
 			continue
 		}
 
-		yamlMap := make(Data)
+		var yamlMap yaml.MapSlice
 
 		decodeOpts := []yaml.DecodeOption{
 			yaml.UseOrderedMap(),
 			yaml.Strict(),
-			yaml.ReferenceReaders(anchorRefs),
+			yaml.ReferenceReaders(strings.NewReader(anchorRefData)),
 		}
 
 		encodeOpts := []yaml.EncodeOption{
@@ -48,11 +49,15 @@ func (yamlRoutes YamlRoutes) Build() (Yaml, error) {
 }
 
 func (yamlRoutes YamlRoutes) getRawData() string {
-	var rawData string
+	var builder strings.Builder
 
-	for _, dependencyRoute := range yamlRoutes {
-		rawData += fmt.Sprintf("---\n%s\n", dependencyRoute.DataRaw)
+	for _, file := range yamlRoutes.OrderedFiles() {
+		dependencyRoute := yamlRoutes[file]
+
+		builder.WriteString("---\n")
+		builder.WriteString(dependencyRoute.DataRaw)
+		builder.WriteString("\n")
 	}
 
-	return rawData
+	return builder.String()
 }
