@@ -247,9 +247,35 @@ yamll tree -f import.yaml
     ├── internal/fixtures/base2.yaml
     │   └── internal/fixtures/base3.yaml
     ├── internal/fixtures/*.test.yaml
+    │   ├── /Users/nikhilbhat/my-opensource/yamll/internal/fixtures/base.test.yaml
+    │   ├── /Users/nikhilbhat/my-opensource/yamll/internal/fixtures/base2.test.yaml
+    │   ├── /Users/nikhilbhat/my-opensource/yamll/internal/fixtures/base3.test.yaml
+    │   ├── internal/fixtures/base4.yaml
+    │   ├── internal/fixtures/base5.yaml
+    │   └── internal/fixtures/base4.yaml
     ├── https://github.com/nikhilsbhat/yamll@main?path=internal/fixtures/base2.yaml
     │   └── internal/fixtures/base3.yaml
     └── http://localhost:3000/database.yaml
+```
+
+### Trace
+
+Need to figure out where a specific rendered value came from?
+
+`yamll trace` maps a generated YAML path back to its source file and line number (similar to source maps in compilers).
+
+**Example**:
+
+```sh
+yamll trace internal/fixtures/import.yaml:base.movies
+yamll trace -f internal/fixtures/import.yaml base.movies
+yamll trace -f internal/fixtures/import.yaml workflow.dbname
+```
+
+**Output**:
+
+```sh
+origin: internal/fixtures/base5.yaml:2
 ```
 ### Preventing Import Cycles
 

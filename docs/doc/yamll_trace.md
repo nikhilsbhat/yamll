@@ -1,32 +1,31 @@
-## yamll build
+## yamll trace
 
-Builds YAML files substituting imports
+Traces a generated YAML path back to its source file
 
 ### Synopsis
 
-Builds YAML by substituting all anchors and aliases defined in sub-YAML files defined as libraries
+Traces a generated YAML path back to the source YAML file and line that produced it.
 
 ```
-yamll build [flags]
+yamll trace [flags] <file:path|path>
 ```
 
 ### Examples
 
 ```
-yamll build --file path/to/file.yaml
+yamll trace internal/fixtures/import.yaml:base.movies
+yamll trace --file internal/fixtures/import.yaml base.movies
 ```
 
 ### Options
 
 ```
   -f, --file stringArray     root yaml files to be used for importing
-  -h, --help                 help for build
+  -h, --help                 help for trace
       --limiter string       limiters to separate the yaml files post merging (default "---")
       --log-level string     log level for the yamll (default "INFO")
       --no-color             when enabled the output would not be color encoded
-      --no-validation        when enabled it skips validating the final generated YAML file
       --show-pattern-files   when enabled, pattern imports in tree output will include matched filenames (default true)
-      --to-file string       name of the file to which the final imported yaml should be written to
 ```
 
 ### SEE ALSO
