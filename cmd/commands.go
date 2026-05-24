@@ -179,7 +179,7 @@ func getTreeCommand() *cobra.Command {
 			cfg.SetLogger()
 			logger = cfg.GetLogger()
 
-			if err := cfg.YamlTree(cliCfg.NoColor); err != nil {
+			if err := cfg.YamlTree(cliCfg.NoColor, cliCfg.ShowPattern); err != nil {
 				logger.Error("errored generating final yaml", slog.Any("err", err))
 			}
 

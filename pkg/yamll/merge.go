@@ -209,7 +209,7 @@ func routeLess(routes YamlRoutes, left, right string) bool {
 }
 
 // PrintDependencyTree recursively prints the dependency tree.
-func (yamlRoutes YamlRoutes) PrintDependencyTree(name string, prefix string, isTail, noColor bool) {
+func (yamlRoutes YamlRoutes) PrintDependencyTree(name string, prefix string, isTail, noColor bool, showPatternFiles bool) {
 	color.NoColor = noColor
 
 	if data, exists := yamlRoutes[name]; exists {
@@ -218,7 +218,12 @@ func (yamlRoutes YamlRoutes) PrintDependencyTree(name string, prefix string, isT
 			connector = color.GreenString("└── ")
 		}
 
-		fmt.Printf("%s%s%s\n", prefix, connector, color.MagentaString(name))
+		displayName := name
+		if isPattern(name) && len(data.SourceFile) != 0 {
+			displayName = fmt.Sprintf("%s (%d files)", name, len(data.SourceFile))
+		}
+
+		fmt.Printf("%s%s%s\n", prefix, connector, color.MagentaString(displayName))
 
 		newPrefix := prefix
 		if isTail {
@@ -227,8 +232,35 @@ func (yamlRoutes YamlRoutes) PrintDependencyTree(name string, prefix string, isT
 			newPrefix += color.GreenString("│   ")
 		}
 
-		for i, dep := range data.Dependency {
-			yamlRoutes.PrintDependencyTree(dep.Path, newPrefix, i == len(data.Dependency)-1, noColor)
+		patternFiles := make([]string, 0)
+
+		if showPatternFiles && isPattern(name) {
+			for _, src := range data.SourceFile {
+				if src.Name != "" {
+					patternFiles = append(patternFiles, src.Name)
+				}
+			}
+
+			sort.Strings(patternFiles)
+		}
+
+		totalChildren := len(patternFiles) + len(data.Dependency)
+		childIndex := 0
+
+		for _, file := range patternFiles {
+			childIndex++
+
+			childConnector := color.GreenString("├── ")
+			if childIndex == totalChildren {
+				childConnector = color.GreenString("└── ")
+			}
+
+			fmt.Printf("%s%s%s\n", newPrefix, childConnector, color.MagentaString(file))
+		}
+
+		for _, dep := range data.Dependency {
+			childIndex++
+			yamlRoutes.PrintDependencyTree(dep.Path, newPrefix, childIndex == totalChildren, noColor, showPatternFiles)
 		}
 	}
 }

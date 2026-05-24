@@ -30,22 +30,27 @@ func (dependency *Dependency) Git(log *slog.Logger) (File, error) {
 		return File{}, err
 	}
 
+	var depAuth Auth
+	if dependency.Auth != nil {
+		depAuth = *dependency.Auth
+	}
+
 	cloneOptions := &git.CloneOptions{
 		URL:      gitMetaData.gitBaseURL,
 		Progress: os.Stdout,
 	}
 
-	if len(dependency.Auth.CaContent) != 0 {
-		cloneOptions.CABundle = []byte(dependency.Auth.CaContent)
+	if len(depAuth.CaContent) != 0 {
+		cloneOptions.CABundle = []byte(depAuth.CaContent)
 	}
 
 	switch gitMetaData.ssh {
 	case true:
 		log.Debug("the git import is of type ssh, so setting ssh based auth")
 
-		sshKEY, err := os.ReadFile(dependency.Auth.SSHKey)
+		sshKEY, err := os.ReadFile(depAuth.SSHKey)
 		if err != nil {
-			return File{}, &errors.YamllError{Message: fmt.Sprintf("reading ssh key '%s' errored with %v", dependency.Auth.SSHKey, err)}
+			return File{}, &errors.YamllError{Message: fmt.Sprintf("reading ssh key '%s' errored with %v", depAuth.SSHKey, err)}
 		}
 
 		signer, err := ssh.ParsePrivateKey(sshKEY)
@@ -59,12 +64,12 @@ func (dependency *Dependency) Git(log *slog.Logger) (File, error) {
 		log.Debug("the git import is of type https, so setting http based auth")
 
 		auth := &http.BasicAuth{
-			Username: dependency.Auth.UserName,
-			Password: dependency.Auth.Password,
+			Username: depAuth.UserName,
+			Password: depAuth.Password,
 		}
 
-		if len(dependency.Auth.BarerToken) != 0 {
-			auth.Password = dependency.Auth.BarerToken
+		if len(depAuth.BarerToken) != 0 {
+			auth.Password = depAuth.BarerToken
 		}
 
 		cloneOptions.Auth = auth

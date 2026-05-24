@@ -87,7 +87,7 @@ func (cfg *Config) Yaml() (Yaml, error) {
 }
 
 // YamlTree constructs a dependency tree and displays it in a format similar to the Linux tree utility.
-func (cfg *Config) YamlTree(color bool) error {
+func (cfg *Config) YamlTree(color bool, showPatternFiles bool) error {
 	cfg.Root = false
 
 	dependencyRoutes, err := cfg.ResolveDependencies(make(map[string]*YamlData), cfg.Files...)
@@ -99,7 +99,7 @@ func (cfg *Config) YamlTree(color bool) error {
 
 	cfg.log.Debug("identified root file", slog.Any("file", rootFile))
 
-	YamlRoutes(dependencyRoutes).PrintDependencyTree(rootFile, "", true, color)
+	YamlRoutes(dependencyRoutes).PrintDependencyTree(rootFile, "", true, color, showPatternFiles)
 
 	return err
 }
@@ -118,7 +118,7 @@ func (cfg *Config) YamlBuild() (Yaml, error) {
 
 // New returns new instance of Config with passed parameters.
 func New(effective bool, logLevel, limiter string, paths ...string) *Config {
-	dependencies := make([]*Dependency, 0)
+	dependencies := make([]*Dependency, 0, len(paths))
 
 	for _, path := range paths {
 		dependency := &Dependency{Path: path}

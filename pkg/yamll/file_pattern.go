@@ -73,6 +73,10 @@ func (dependency *Dependency) filesMatchingPattern() (string, []string, error) {
 		return "", nil, &errors.YamllError{Message: fmt.Sprintf("error matching pattern: '%v'", err)}
 	}
 
+	if len(filesMatching) == 0 {
+		return "", nil, &errors.YamllError{Message: fmt.Sprintf("pattern matched no files: '%s'", dependency.Path)}
+	}
+
 	var excludePath string
 	if dependency.excludePath != "" {
 		absExcludePath, err := filepath.Abs(dependency.excludePath)

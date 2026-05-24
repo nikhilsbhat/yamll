@@ -24,7 +24,7 @@ const (
 type Dependency struct {
 	Path        string `json:"file,omitempty" yaml:"file,omitempty"`
 	Type        string `json:"type,omitempty" yaml:"type,omitempty"`
-	Auth        Auth   `json:"auth,omitempty" yaml:"auth,omitempty"`
+	Auth        *Auth  `json:"auth,omitempty" yaml:"auth,omitempty"`
 	excludePath string
 }
 
@@ -50,6 +50,10 @@ func (cfg *Config) ResolveDependencies(routes map[string]*YamlData, dependencies
 	}
 
 	for fileHierarchy, dependencyPath := range dependenciesPath {
+		if dependencyPath == nil {
+			return nil, &errors.YamllError{Message: "dependency path is nil"}
+		}
+
 		if _, ok := routes[dependencyPath.Path]; ok {
 			continue
 		}
@@ -134,7 +138,7 @@ func (cfg *Config) GetDependencyData(dependency string) (*Dependency, error) {
 			return nil, &errors.YamllError{Message: fmt.Sprintf("reading auth config from depency errored with '%v'", err)}
 		}
 
-		dependencyData.Auth = auth
+		dependencyData.Auth = &auth
 	}
 
 	return dependencyData, nil
@@ -173,8 +177,10 @@ func (cfg *Config) extractDependencies(yamlFileData, sourcePath string) ([]*Depe
 
 	for scanner.Scan() {
 		line := scanner.Text()
-		if strings.HasPrefix(strings.TrimSpace(line), "##++") {
-			dependency, err := cfg.GetDependencyData(line)
+		trimmed := strings.TrimSpace(line)
+
+		if strings.HasPrefix(trimmed, "##++") {
+			dependency, err := cfg.GetDependencyData(trimmed)
 			if err != nil {
 				return nil, "", err
 			}

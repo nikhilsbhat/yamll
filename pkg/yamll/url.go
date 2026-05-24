@@ -21,21 +21,26 @@ type FetchData interface {
 func (dependency *Dependency) URL(log *slog.Logger) (File, error) {
 	httpClient := resty.New()
 
-	if len(dependency.Auth.BarerToken) != 0 {
-		log.Debug("using token based auth for remote URL", slog.Any("url", dependency.Path))
-
-		httpClient.SetAuthToken(dependency.Auth.BarerToken)
-	} else if len(dependency.Auth.UserName) != 0 && len(dependency.Auth.Password) != 0 {
-		log.Debug("using basic auth for remote URL", slog.Any("url", dependency.Path))
-
-		httpClient.SetBasicAuth(dependency.Auth.UserName, dependency.Auth.Password)
+	var auth Auth
+	if dependency.Auth != nil {
+		auth = *dependency.Auth
 	}
 
-	if len(dependency.Auth.CaContent) != 0 {
+	if len(auth.BarerToken) != 0 {
+		log.Debug("using token based auth for remote URL", slog.Any("url", dependency.Path))
+
+		httpClient.SetAuthToken(auth.BarerToken)
+	} else if len(auth.UserName) != 0 && len(auth.Password) != 0 {
+		log.Debug("using basic auth for remote URL", slog.Any("url", dependency.Path))
+
+		httpClient.SetBasicAuth(auth.UserName, auth.Password)
+	}
+
+	if len(auth.CaContent) != 0 {
 		log.Debug("using CA for authentication for remote URL", slog.Any("url", dependency.Path))
 
 		certPool := x509.NewCertPool()
-		certPool.AppendCertsFromPEM([]byte(dependency.Auth.CaContent))
+		certPool.AppendCertsFromPEM([]byte(auth.CaContent))
 		httpClient.SetTLSClientConfig(&tls.Config{RootCAs: certPool}) //nolint:gosec
 	} else {
 		log.Debug("skipping TLS verification")

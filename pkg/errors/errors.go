@@ -7,3 +7,7 @@ func (e *YamlError) Error() string {
 func (e *YamllError) Error() string {
 	return e.Message
 }
+
+func (e *YamlEmptyError) Error() string {
+	return e.Message
+}

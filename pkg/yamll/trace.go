@@ -1,6 +1,7 @@
 package yamll
 
 import (
+	stdErrors "errors"
 	"fmt"
 	"path/filepath"
 	"regexp"
@@ -61,6 +62,10 @@ func (cfg *Config) Trace(path string) (TraceResult, error) {
 	for _, sourceFile := range rootRoute.SourceFile {
 		node, err := parseYAMLSource(sourceFile.Data)
 		if err != nil {
+			if stdErrors.Is(err, &errors.YamlEmptyError{}) {
+				continue
+			}
+
 			return TraceResult{}, err
 		}
 
@@ -85,6 +90,10 @@ func (yamlRoutes YamlRoutes) collectAnchors() (map[string]anchorOrigin, error) {
 		for _, sourceFile := range route.SourceFile {
 			node, err := parseYAMLSource(sourceFile.Data)
 			if err != nil {
+				if stdErrors.Is(err, &errors.YamlEmptyError{}) {
+					continue
+				}
+
 				return nil, err
 			}
 
@@ -119,7 +128,7 @@ func parseYAMLSource(data string) (*yamlv3.Node, error) {
 	}
 
 	if len(node.Content) == 0 {
-		return nil, nil
+		return nil, &errors.YamlEmptyError{Message: "empty YAML document"}
 	}
 
 	return node.Content[0], nil

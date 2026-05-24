@@ -9,6 +9,7 @@ type Config struct {
 	NoValidation bool
 	Explode      bool
 	NoColor      bool
+	ShowPattern  bool
 	ToFile       string
 	Files        []string
 }
@@ -23,6 +24,8 @@ func registerCommonFlags(cmd *cobra.Command) {
 		"root yaml files to be used for importing")
 	cmd.PersistentFlags().BoolVarP(&cliCfg.NoColor, "no-color", "", false,
 		"when enabled the output would not be color encoded")
+	cmd.PersistentFlags().BoolVarP(&cliCfg.ShowPattern, "show-pattern-files", "", true,
+		"when enabled, pattern imports in tree output will include matched filenames")
 }
 
 func registerImportFlags(cmd *cobra.Command) {

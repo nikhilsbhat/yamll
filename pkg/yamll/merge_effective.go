@@ -20,9 +20,7 @@ func (yml Yaml) EffectiveMerge() (Yaml, error) {
 	yamlMapMerged := make(Data)
 	anchorRefData := dedupeAnchorReferences(string(yml))
 
-	yamlDataS := strings.Split(string(yml), "---")
-
-	for _, yamlData := range yamlDataS {
+	for yamlData := range strings.SplitSeq(string(yml), "---") {
 		yamlData = strings.TrimSpace(yamlData)
 		if len(yamlData) == 0 {
 			continue

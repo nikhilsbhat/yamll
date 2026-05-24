@@ -48,6 +48,7 @@ func Test_getDependencyData2(t *testing.T) {
 
 		require.Len(t, dependencies, 6)
 		require.Equal(t, "https://test.com/test.yaml", dependencies[4].Path)
+		require.NotNil(t, dependencies[4].Auth)
 		require.Equal(t, "nikhil", dependencies[4].Auth.UserName)
 		require.Equal(t, "super-secret-password", dependencies[4].Auth.Password)
 	})
@@ -94,12 +95,7 @@ func TestDependency_ReadData(t *testing.T) {
 
 func TestConfig_ResolveDependencies2(t *testing.T) {
 	t.Run("", func(t *testing.T) {
-		wd, err := os.Getwd()
-		require.NoError(t, err)
-		require.NoError(t, os.Chdir("../.."))
-		t.Cleanup(func() {
-			require.NoError(t, os.Chdir(wd))
-		})
+		t.Chdir("../..")
 
 		dependency := []*yamll.Dependency{{
 			Path: "internal/fixtures/base.yaml",

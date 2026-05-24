@@ -26,3 +26,5 @@ base:
   <<: *base_test
   <<: *base2_test
   <<: *base3_test
+
+platform: *ott

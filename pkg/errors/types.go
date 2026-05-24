@@ -6,3 +6,7 @@ type YamlError struct {
 type YamllError struct {
 	Message string
 }
+
+type YamlEmptyError struct {
+	Message string
+}
