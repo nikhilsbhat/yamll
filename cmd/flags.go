@@ -10,6 +10,8 @@ type Config struct {
 	Explode      bool
 	NoColor      bool
 	ShowPattern  bool
+	LockFile     string
+	NoLock       bool
 	ToFile       string
 	Files        []string
 }
@@ -26,6 +28,10 @@ func registerCommonFlags(cmd *cobra.Command) {
 		"when enabled the output would not be color encoded")
 	cmd.PersistentFlags().BoolVarP(&cliCfg.ShowPattern, "show-pattern-files", "", true,
 		"when enabled, pattern imports in tree output will include matched filenames")
+	cmd.PersistentFlags().StringVarP(&cliCfg.LockFile, "lock-file", "", "yamll.lock",
+		"path to the lock file used for reproducible remote imports")
+	cmd.PersistentFlags().BoolVarP(&cliCfg.NoLock, "no-lock", "", false,
+		"when enabled, ignores any lock file during import/build/tree")
 }
 
 func registerImportFlags(cmd *cobra.Command) {

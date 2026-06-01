@@ -285,3 +285,29 @@ func displayTestPath(path string) string {
 
 	return relPath
 }
+
+func TestConfig_LockGeneratesEntries(t *testing.T) {
+	dir := t.TempDir()
+	rootFile := filepath.Join(dir, "root.yaml")
+	libFile := filepath.Join(dir, "lib.yaml")
+
+	require.NoError(t, os.WriteFile(rootFile, []byte("##++"+libFile+"\nroot: true\n"), 0o600))
+	require.NoError(t, os.WriteFile(libFile, []byte("name: lib\n"), 0o600))
+
+	cfg := yamll.New(false, "DEBUG", "---", rootFile)
+	cfg.SetLogger()
+
+	out, err := cfg.Lock()
+	require.NoError(t, err)
+	require.Contains(t, string(out), "version:")
+	require.Contains(t, string(out), "entries:")
+	require.Contains(t, string(out), "sha256:")
+}
+
+func TestPinGitImportToCommit(t *testing.T) {
+	t.Run("pins ref to commit", func(t *testing.T) {
+		in := "git+https://example.com/org/repo@v1.2.3?path=base.yaml"
+		out := yamll.PinGitImportToCommitForTest(in, "deadbeef")
+		require.Equal(t, "git+https://example.com/org/repo@deadbeef?path=base.yaml", out)
+	})
+}

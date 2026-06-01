@@ -277,6 +277,26 @@ yamll trace -f internal/fixtures/import.yaml workflow.dbname
 ```sh
 origin: internal/fixtures/base5.yaml:2
 ```
+
+### Lock File
+
+Remote imports (git/URL) are powerful, but can drift over time. `yamll lock` generates a lock file with resolved commits and checksums, and subsequent commands will honor it by default.
+
+More details: [LOCKFILE.md](docs/LOCKFILE.md)
+
+**Example**:
+
+```sh
+yamll lock -f internal/fixtures/import.yaml
+yamll import -f internal/fixtures/import.yaml
+yamll build -f internal/fixtures/import.yaml
+```
+
+To ignore the lock file for a run:
+
+```sh
+yamll import -f internal/fixtures/import.yaml --no-lock
+```
 ### Preventing Import Cycles
 
 `yamll` detects and prevents import cycles. If an import cycle is detected, it will report an error and stop the merging

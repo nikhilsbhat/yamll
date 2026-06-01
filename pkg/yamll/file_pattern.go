@@ -1,10 +1,13 @@
 package yamll
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"log/slog"
 	"os"
 	"path/filepath"
+	"sort"
 
 	"github.com/nikhilsbhat/yamll/pkg/errors"
 )
@@ -13,6 +16,12 @@ type File struct {
 	Name   string
 	Data   string
 	Source []File
+	Meta   FileMeta
+}
+
+type FileMeta struct {
+	SHA256    string
+	GitCommit string
 }
 
 // FilePattern reads the data from the Files matching the pattern import.
@@ -38,11 +47,17 @@ func (dependency *Dependency) FilePattern(log *slog.Logger) (File, error) {
 			return File{}, &errors.YamllError{Message: fmt.Sprintf("reading YAML dependency errored with: '%v'", err)}
 		}
 
+		sum := sha256.Sum256(yamlFileData)
+
 		yamlFilesData = yamlFilesData + "\n" + string(yamlFileData)
-		sources = append(sources, File{Name: fileMatching, Data: string(yamlFileData)})
+		sources = append(sources, File{Name: fileMatching, Data: string(yamlFileData), Meta: FileMeta{SHA256: hex.EncodeToString(sum[:])}})
 	}
 
-	return File{Name: absFilePattern, Data: yamlFilesData, Source: sources}, nil
+	sort.SliceStable(sources, func(i, j int) bool { return sources[i].Name < sources[j].Name })
+
+	sum := sha256.Sum256([]byte(yamlFilesData))
+
+	return File{Name: absFilePattern, Data: yamlFilesData, Source: sources, Meta: FileMeta{SHA256: hex.EncodeToString(sum[:])}}, nil
 }
 
 func (dependency *Dependency) FilesFromPattern() ([]File, error) {

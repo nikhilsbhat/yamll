@@ -1,6 +1,8 @@
 package yamll
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"log/slog"
 	"os"
@@ -21,5 +23,7 @@ func (dependency *Dependency) File(_ *slog.Logger) (File, error) {
 		return File{}, &errors.YamllError{Message: fmt.Sprintf("reading YAML dependency errored with: '%v'", err)}
 	}
 
-	return File{Name: absYamlFilePath, Data: string(yamlFileData)}, nil
+	sum := sha256.Sum256(yamlFileData)
+
+	return File{Name: absYamlFilePath, Data: string(yamlFileData), Meta: FileMeta{SHA256: hex.EncodeToString(sum[:])}}, nil
 }

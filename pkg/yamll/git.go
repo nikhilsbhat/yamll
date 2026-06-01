@@ -1,6 +1,8 @@
 package yamll
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"log/slog"
 	"os"
@@ -104,7 +106,21 @@ func (dependency *Dependency) Git(log *slog.Logger) (File, error) {
 		return File{}, &errors.YamllError{Message: fmt.Sprintf("reading content from file of git errored with '%v'", err)}
 	}
 
-	return File{Name: yamlFilePath, Data: string(gitFileContent)}, nil
+	head, err := repo.Head()
+	if err != nil {
+		return File{}, err
+	}
+
+	sum := sha256.Sum256(gitFileContent)
+
+	return File{
+		Name: yamlFilePath,
+		Data: string(gitFileContent),
+		Meta: FileMeta{
+			SHA256:    hex.EncodeToString(sum[:]),
+			GitCommit: head.Hash().String(),
+		},
+	}, nil
 }
 
 //nolint:gomnd

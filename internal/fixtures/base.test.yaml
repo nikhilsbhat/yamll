@@ -1,3 +1,4 @@
 ##++internal/fixtures/base4.yaml
+##++internal/fixtures/*.testing.yaml
 base_test: &base_test
   base_name: base_test

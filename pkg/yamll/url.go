@@ -1,8 +1,10 @@
 package yamll
 
 import (
+	"crypto/sha256"
 	"crypto/tls"
 	"crypto/x509"
+	"encoding/hex"
 	"fmt"
 	"log/slog"
 
@@ -59,5 +61,8 @@ func (dependency *Dependency) URL(log *slog.Logger) (File, error) {
 		}
 	}
 
-	return File{Name: dependency.Path, Data: resp.String()}, err
+	body := resp.String()
+	sum := sha256.Sum256([]byte(body))
+
+	return File{Name: dependency.Path, Data: body, Meta: FileMeta{SHA256: hex.EncodeToString(sum[:])}}, err
 }

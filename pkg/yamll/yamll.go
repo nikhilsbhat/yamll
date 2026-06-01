@@ -26,6 +26,8 @@ type Config struct {
 	Limiter  string        `json:"limiter,omitempty" yaml:"limiter,omitempty"`
 	LogLevel string        `json:"log_level,omitempty" yaml:"log_level,omitempty"`
 	Files    []*Dependency `json:"files,omitempty" yaml:"files,omitempty"`
+	LockFile string        `json:"lock_file,omitempty" yaml:"lock_file,omitempty"`
+	NoLock   bool          `json:"no_lock,omitempty" yaml:"no_lock,omitempty"`
 	log      *slog.Logger
 }
 
@@ -126,5 +128,11 @@ func New(effective bool, logLevel, limiter string, paths ...string) *Config {
 		dependencies = append(dependencies, dependency)
 	}
 
-	return &Config{Files: dependencies, Limiter: limiter, LogLevel: logLevel, Merge: effective}
+	return &Config{
+		Files:    dependencies,
+		Limiter:  limiter,
+		LogLevel: logLevel,
+		Merge:    effective,
+		LockFile: "yamll.lock",
+	}
 }

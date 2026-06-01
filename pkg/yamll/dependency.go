@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"net/url"
 	"strings"
 
 	"dario.cat/mergo"
@@ -49,9 +50,21 @@ func (cfg *Config) ResolveDependencies(routes map[string]*YamlData, dependencies
 		rootFile = true
 	}
 
+	lockEntries, err := cfg.loadLockEntries()
+	if err != nil {
+		return nil, err
+	}
+
 	for fileHierarchy, dependencyPath := range dependenciesPath {
 		if dependencyPath == nil {
 			return nil, &errors.YamllError{Message: "dependency path is nil"}
+		}
+
+		if lockEntries != nil && dependencyPath.Type == TypeGit {
+			if entry, ok := lockEntries[dependencyPath.Path]; ok && entry.GitCommit != "" {
+				dependencyPath.Path = pinGitImportToCommit(dependencyPath.Path, entry.GitCommit)
+				dependencyPath.IdentifyType()
+			}
 		}
 
 		if _, ok := routes[dependencyPath.Path]; ok {
@@ -103,6 +116,33 @@ func (cfg *Config) ResolveDependencies(routes map[string]*YamlData, dependencies
 	return routes, nil
 }
 
+func pinGitImportToCommit(source, commit string) string {
+	// git+https://host/org/repo@ref?path=...
+	// -> git+https://host/org/repo@<commit>?path=...
+	if !strings.HasPrefix(source, TypeGit) {
+		return source
+	}
+
+	withoutPrefix := strings.TrimPrefix(source, TypeGit)
+
+	beforeAt, afterAt, found := strings.Cut(withoutPrefix, "@")
+	if !found {
+		return source
+	}
+
+	_, afterRef, found := strings.Cut(afterAt, "?")
+	if !found {
+		return source
+	}
+
+	return TypeGit + beforeAt + "@" + commit + "?" + afterRef
+}
+
+// PinGitImportToCommitForTest is exported only for tests.
+func PinGitImportToCommitForTest(source, commit string) string {
+	return pinGitImportToCommit(source, commit)
+}
+
 // GetDependencyData reads the imports analyses it and generates Dependency data for it.
 func (cfg *Config) GetDependencyData(dependency string) (*Dependency, error) {
 	importStatement := strings.TrimSpace(dependency)
@@ -120,6 +160,10 @@ func (cfg *Config) GetDependencyData(dependency string) (*Dependency, error) {
 	dependencyPath := strings.TrimSpace(imports[0])
 	if dependencyPath == "" {
 		return nil, &errors.YamllError{Message: "import path cannot be empty"}
+	}
+
+	if normalized, ok := normalizeGitShorthand(dependencyPath); ok {
+		dependencyPath = normalized
 	}
 
 	dependencyData := &Dependency{Path: dependencyPath}
@@ -142,6 +186,47 @@ func (cfg *Config) GetDependencyData(dependency string) (*Dependency, error) {
 	}
 
 	return dependencyData, nil
+}
+
+// normalizeGitShorthand converts a github.com shorthand import like:
+// github.com/org/repo//path/to/file.yaml@v1.2.3
+// into the canonical git import format.
+func normalizeGitShorthand(path string) (string, bool) {
+	// Host-agnostic shorthand:
+	// <host>/<org>/<repo>//path/to/file.yaml@ref
+	// Example: github.com/org/repo//base.yaml@v1.2.0
+	// Example: gitlab.com/org/repo//base.yaml@v1.2.0
+	//
+	// Only https-style hosts are supported by this shorthand.
+	if strings.Contains(path, "://") {
+		return "", false
+	}
+
+	// Split version from suffix.
+	base, version, found := strings.Cut(path, "@")
+	if !found || version == "" {
+		return "", false
+	}
+
+	// Split repo from file path.
+	repoPart, filePath, found := strings.Cut(base, "//")
+	if !found || filePath == "" {
+		return "", false
+	}
+
+	const splitRootPart = 3
+
+	parts := strings.Split(repoPart, "/")
+	if len(parts) < splitRootPart {
+		return "", false
+	}
+
+	host := parts[0]
+	owner := parts[1]
+	repo := parts[2]
+	gitURL := fmt.Sprintf("https://%s/%s/%s", host, owner, repo)
+
+	return fmt.Sprintf("git+%s@%s?path=%s", gitURL, version, url.QueryEscape(filePath)), true
 }
 
 // ReadData actually reads the data from the identified import.

@@ -52,6 +52,8 @@ yamll import --file path/to/file.yaml --effective`,
 			cfg := yamll.New(yamllCfg.Merge, yamllCfg.LogLevel, yamllCfg.Limiter, cliCfg.Files...)
 			cfg.SetLogger()
 			logger = cfg.GetLogger()
+			cfg.LockFile = cliCfg.LockFile
+			cfg.NoLock = cliCfg.NoLock
 
 			out, err := cfg.Yaml()
 			if err != nil {
@@ -118,6 +120,8 @@ func getBuildCommand() *cobra.Command {
 			cfg := yamll.New(yamllCfg.Merge, yamllCfg.LogLevel, yamllCfg.Limiter, cliCfg.Files...)
 			cfg.SetLogger()
 			logger = cfg.GetLogger()
+			cfg.LockFile = cliCfg.LockFile
+			cfg.NoLock = cliCfg.NoLock
 
 			out, err := cfg.YamlBuild()
 			if err != nil {
@@ -178,6 +182,8 @@ func getTreeCommand() *cobra.Command {
 			cfg := yamll.New(yamllCfg.Merge, yamllCfg.LogLevel, yamllCfg.Limiter, cliCfg.Files...)
 			cfg.SetLogger()
 			logger = cfg.GetLogger()
+			cfg.LockFile = cliCfg.LockFile
+			cfg.NoLock = cliCfg.NoLock
 
 			if err := cfg.YamlTree(cliCfg.NoColor, cliCfg.ShowPattern); err != nil {
 				logger.Error("errored generating final yaml", slog.Any("err", err))
@@ -211,6 +217,8 @@ yamll trace --file internal/fixtures/import.yaml base.movies`,
 			cfg := yamll.New(false, yamllCfg.LogLevel, yamllCfg.Limiter, cliCfg.Files...)
 			cfg.SetLogger()
 			logger = cfg.GetLogger()
+			cfg.LockFile = cliCfg.LockFile
+			cfg.NoLock = cliCfg.NoLock
 
 			trace, err := cfg.Trace(tracePath)
 			if err != nil {
@@ -239,6 +247,49 @@ func parseTraceTarget(target string) (string, string) {
 	}
 
 	return rootFile, tracePath
+}
+
+func getLockCommand() *cobra.Command {
+	lockCommand := &cobra.Command{
+		Use:     "lock [flags]",
+		Short:   "Generates a lock file for reproducible remote imports",
+		Long:    "Resolves remote imports and writes a lock file containing resolved commits and checksums.",
+		Example: "yamll lock -f path/to/root.yaml",
+		PreRunE: setCLIClient,
+		RunE: func(_ *cobra.Command, _ []string) error {
+			cfg := yamll.New(false, yamllCfg.LogLevel, yamllCfg.Limiter, cliCfg.Files...)
+			cfg.SetLogger()
+
+			logger = cfg.GetLogger()
+
+			cfg.LockFile = cliCfg.LockFile
+			cfg.NoLock = cliCfg.NoLock
+
+			out, err := cfg.Lock()
+			if err != nil {
+				logger.Error("errored generating lock file", slog.Any("err", err))
+				os.Exit(1)
+			}
+
+			lockPath := "yamll.lock"
+			if cliCfg.ToFile != "" {
+				lockPath = cliCfg.ToFile
+			}
+
+			const readPermission = 0o600
+
+			if err = os.WriteFile(lockPath, out, readPermission); err != nil {
+				return err
+			}
+
+			return nil
+		},
+	}
+
+	lockCommand.SilenceErrors = true
+	registerCommonFlags(lockCommand)
+
+	return lockCommand
 }
 
 func versionConfig(_ *cobra.Command, _ []string) error {
