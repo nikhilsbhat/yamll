@@ -18,7 +18,7 @@ type Config struct {
 
 // Registers all global flags to utility.
 func registerCommonFlags(cmd *cobra.Command) {
-	cmd.PersistentFlags().StringVarP(&yamllCfg.LogLevel, "log-level", "", "INFO",
+	cmd.PersistentFlags().StringVarP(&yamllCfg.LogLevel, "log-level", "l", "INFO",
 		"log level for the yamll")
 	cmd.PersistentFlags().StringVarP(&yamllCfg.Limiter, "limiter", "", "---",
 		"limiters to separate the yaml files post merging")

@@ -292,6 +292,51 @@ func getLockCommand() *cobra.Command {
 	return lockCommand
 }
 
+func getLintCommand() *cobra.Command {
+	lintCommand := &cobra.Command{
+		Use:     "lint [flags]",
+		Short:   "Lints YAML imports/anchors/merges for common issues",
+		Long:    "Runs static checks on the YAML import graph, anchors, and merge usage.",
+		Example: "yamll lint -f path/to/root.yaml",
+		PreRunE: setCLIClient,
+		RunE: func(_ *cobra.Command, _ []string) error {
+			cfg := yamll.New(false, yamllCfg.LogLevel, yamllCfg.Limiter, cliCfg.Files...)
+			cfg.SetLogger()
+			logger = cfg.GetLogger()
+			cfg.LockFile = cliCfg.LockFile
+			cfg.NoLock = cliCfg.NoLock
+
+			report, err := cfg.Lint()
+			if err != nil {
+				logger.Error("lint errored", slog.Any("err", err))
+				os.Exit(1)
+			}
+
+			for _, issue := range report.Issues {
+				file := issue.File
+				if file == "" {
+					file = "-"
+				}
+
+				if _, err = fmt.Fprintf(writer, "%s\t%s\t%s\n", issue.Code, file, issue.Message); err != nil {
+					return err
+				}
+			}
+
+			if len(report.Issues) != 0 {
+				os.Exit(1)
+			}
+
+			return nil
+		},
+	}
+
+	lintCommand.SilenceErrors = true
+	registerCommonFlags(lintCommand)
+
+	return lintCommand
+}
+
 func versionConfig(_ *cobra.Command, _ []string) error {
 	buildInfo, err := json.Marshal(version.GetBuildInfo())
 	if err != nil {

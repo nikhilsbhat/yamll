@@ -1,9 +1,11 @@
 package yamll
 
 import (
+	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	"io"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -39,7 +41,7 @@ func (dependency *Dependency) Git(log *slog.Logger) (File, error) {
 
 	cloneOptions := &git.CloneOptions{
 		URL:      gitMetaData.gitBaseURL,
-		Progress: os.Stdout,
+		Progress: gitCloneProgressWriter(log),
 	}
 
 	if len(depAuth.CaContent) != 0 {
@@ -121,6 +123,14 @@ func (dependency *Dependency) Git(log *slog.Logger) (File, error) {
 			GitCommit: head.Hash().String(),
 		},
 	}, nil
+}
+
+func gitCloneProgressWriter(log *slog.Logger) io.Writer {
+	if log != nil && log.Enabled(context.Background(), slog.LevelDebug) {
+		return os.Stdout
+	}
+
+	return nil
 }
 
 //nolint:gomnd
