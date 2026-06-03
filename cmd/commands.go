@@ -173,10 +173,13 @@ func getBuildCommand() *cobra.Command {
 
 func getTreeCommand() *cobra.Command {
 	treeCommand := &cobra.Command{
-		Use:     "tree [flags]",
-		Short:   "Builds dependency trees from sub-YAML files defined as libraries",
-		Long:    "Identifies dependencies and builds the dependency tree for the base yaml",
-		Example: `yamll tree --file path/to/file.yaml`,
+		Use:   "tree [flags]",
+		Short: "Builds dependency trees from sub-YAML files defined as libraries",
+		Long:  "Identifies dependencies and builds the dependency tree for the base yaml",
+		Example: `yamll tree --file path/to/file.yaml
+yamll tree --file path/to/file.yaml --output=json
+yamll tree --file path/to/file.yaml --output=dot
+yamll tree --file path/to/file.yaml --output=mermaid`,
 		PreRunE: setCLIClient,
 		RunE: func(_ *cobra.Command, _ []string) error {
 			cfg := yamll.New(yamllCfg.Merge, yamllCfg.LogLevel, yamllCfg.Limiter, cliCfg.Files...)
@@ -185,8 +188,14 @@ func getTreeCommand() *cobra.Command {
 			cfg.LockFile = cliCfg.LockFile
 			cfg.NoLock = cliCfg.NoLock
 
-			if err := cfg.YamlTree(cliCfg.NoColor, cliCfg.ShowPattern); err != nil {
+			out, err := cfg.Tree(cliCfg.TreeOutput, cliCfg.NoColor, cliCfg.ShowPattern)
+			if err != nil {
 				logger.Error("errored generating final yaml", slog.Any("err", err))
+				os.Exit(1)
+			}
+
+			if _, err = writer.Write([]byte(out)); err != nil {
+				return err
 			}
 
 			return nil
@@ -195,6 +204,8 @@ func getTreeCommand() *cobra.Command {
 
 	treeCommand.SilenceErrors = true
 	registerCommonFlags(treeCommand)
+	treeCommand.PersistentFlags().StringVarP(&cliCfg.TreeOutput, "output", "o", yamll.TreeOutputText,
+		"tree output format: text, json, dot, or mermaid")
 
 	return treeCommand
 }

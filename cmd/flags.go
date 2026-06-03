@@ -10,6 +10,7 @@ type Config struct {
 	Explode      bool
 	NoColor      bool
 	ShowPattern  bool
+	TreeOutput   string
 	LockFile     string
 	NoLock       bool
 	ToFile       string

@@ -3,6 +3,7 @@ package yamll
 import (
 	"fmt"
 	"log/slog"
+	"os"
 
 	"github.com/nikhilsbhat/yamll/pkg/errors"
 )
@@ -90,20 +91,29 @@ func (cfg *Config) Yaml() (Yaml, error) {
 
 // YamlTree constructs a dependency tree and displays it in a format similar to the Linux tree utility.
 func (cfg *Config) YamlTree(color bool, showPatternFiles bool) error {
+	output, err := cfg.Tree(TreeOutputText, color, showPatternFiles)
+	if err != nil {
+		return err
+	}
+
+	_, err = fmt.Fprint(os.Stdout, output)
+
+	return err
+}
+
+func (cfg *Config) Tree(outputFormat string, noColor, showPatternFiles bool) (string, error) {
 	cfg.Root = false
 
 	dependencyRoutes, err := cfg.ResolveDependencies(make(map[string]*YamlData), cfg.Files...)
 	if err != nil {
-		return &errors.YamllError{Message: fmt.Sprintf("fetching dependency tree errored with: '%v'", err)}
+		return "", &errors.YamllError{Message: fmt.Sprintf("fetching dependency tree errored with: '%v'", err)}
 	}
 
 	rootFile := cfg.Files[0].Path
 
-	cfg.log.Debug("identified root file", slog.Any("file", rootFile))
+	cfg.log.Debug("identified root file", slog.Any("file", rootFile), slog.String("output", normalizeTreeOutputFormat(outputFormat)))
 
-	YamlRoutes(dependencyRoutes).PrintDependencyTree(rootFile, "", true, color, showPatternFiles)
-
-	return err
+	return YamlRoutes(dependencyRoutes).RenderDependencyTree(rootFile, outputFormat, noColor, showPatternFiles)
 }
 
 // YamlBuild builds YAML by substituting all anchors and aliases defined in sub-YAML files defined as libraries.
