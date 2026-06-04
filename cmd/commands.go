@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/goccy/go-yaml"
 	"github.com/nikhilsbhat/common/renderer"
@@ -54,6 +55,7 @@ yamll import --file path/to/file.yaml --effective`,
 			logger = cfg.GetLogger()
 			cfg.LockFile = cliCfg.LockFile
 			cfg.NoLock = cliCfg.NoLock
+			cfg.Profile = cliCfg.Profile
 
 			out, err := cfg.Yaml()
 			if err != nil {
@@ -122,6 +124,7 @@ func getBuildCommand() *cobra.Command {
 			logger = cfg.GetLogger()
 			cfg.LockFile = cliCfg.LockFile
 			cfg.NoLock = cliCfg.NoLock
+			cfg.Profile = cliCfg.Profile
 
 			out, err := cfg.YamlBuild()
 			if err != nil {
@@ -129,6 +132,8 @@ func getBuildCommand() *cobra.Command {
 			}
 
 			if !cliCfg.NoValidation {
+				validationStart := time.Now()
+
 				logger.Debug("validating final yaml for syntax")
 
 				var data any
@@ -138,6 +143,10 @@ func getBuildCommand() *cobra.Command {
 					logger.Error("rendering the final YAML encountered an error. skip validation to view the broken file.")
 
 					os.Exit(1)
+				}
+
+				if cfg.Profile {
+					cfg.RecordValidationTiming(time.Since(validationStart))
 				}
 			}
 
@@ -150,6 +159,14 @@ func getBuildCommand() *cobra.Command {
 				} else {
 					out = yamll.Yaml(coloredFinalData)
 				}
+			}
+
+			if cliCfg.Profile {
+				if _, err = fmt.Fprint(os.Stderr, cfg.ProfileReport()); err != nil {
+					return err
+				}
+
+				return nil
 			}
 
 			if _, err = writer.Write([]byte(out)); err != nil {
@@ -167,6 +184,8 @@ func getBuildCommand() *cobra.Command {
 		"name of the file to which the final imported yaml should be written to")
 	buildCommand.PersistentFlags().BoolVarP(&cliCfg.NoValidation, "no-validation", "", false,
 		"when enabled it skips validating the final generated YAML file")
+	buildCommand.PersistentFlags().BoolVarP(&cliCfg.Profile, "profile", "", false,
+		"when enabled it prints timing information for build phases")
 
 	return buildCommand
 }

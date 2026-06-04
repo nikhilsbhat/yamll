@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"net/url"
 	"strings"
+	"time"
 
 	"dario.cat/mergo"
 	"github.com/a8m/envsubst"
@@ -71,7 +72,7 @@ func (cfg *Config) ResolveDependencies(routes map[string]*YamlData, dependencies
 			continue
 		}
 
-		yamlFile, err := dependencyPath.ReadData(cfg.Merge, cfg.log)
+		yamlFile, err := cfg.readDataWithProfile(dependencyPath)
 		if err != nil {
 			return nil, &errors.YamllError{Message: fmt.Sprintf("reading YAML file errored with: '%v'", err)}
 		}
@@ -114,6 +115,21 @@ func (cfg *Config) ResolveDependencies(routes map[string]*YamlData, dependencies
 	}
 
 	return routes, nil
+}
+
+func (cfg *Config) readDataWithProfile(dependencyPath *Dependency) (File, error) {
+	readStart := time.Now()
+
+	yamlFile, err := dependencyPath.ReadData(cfg.Merge, cfg.log)
+	if err != nil {
+		return File{}, err
+	}
+
+	if cfg.Profile && cfg.profile != nil && (dependencyPath.Type == TypeURL || dependencyPath.Type == TypeGit) {
+		cfg.profile.addRemoteFetch(time.Since(readStart))
+	}
+
+	return yamlFile, nil
 }
 
 func pinGitImportToCommit(source, commit string) string {

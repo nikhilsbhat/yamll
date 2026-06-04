@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"time"
 
 	"github.com/nikhilsbhat/yamll/pkg/errors"
 )
@@ -29,7 +30,9 @@ type Config struct {
 	Files    []*Dependency `json:"files,omitempty" yaml:"files,omitempty"`
 	LockFile string        `json:"lock_file,omitempty" yaml:"lock_file,omitempty"`
 	NoLock   bool          `json:"no_lock,omitempty" yaml:"no_lock,omitempty"`
+	Profile  bool          `json:"profile,omitempty" yaml:"profile,omitempty"`
 	log      *slog.Logger
+	profile  *BuildProfile
 }
 
 // YamlRoutes holds a map of YamlData, representing a dependency tree.
@@ -119,13 +122,48 @@ func (cfg *Config) Tree(outputFormat string, noColor, showPatternFiles bool) (st
 // YamlBuild builds YAML by substituting all anchors and aliases defined in sub-YAML files defined as libraries.
 func (cfg *Config) YamlBuild() (Yaml, error) {
 	cfg.Root = false
+	if cfg.Profile {
+		cfg.profile = &BuildProfile{}
+		cfg.profile.begin()
+	}
+
+	resolveStart := time.Now()
 
 	dependencyRoutes, err := cfg.ResolveDependencies(make(map[string]*YamlData), cfg.Files...)
 	if err != nil {
 		return "", &errors.YamllError{Message: fmt.Sprintf("fetching dependency tree errored with: '%v'", err)}
 	}
 
-	return YamlRoutes(dependencyRoutes).Build()
+	if cfg.Profile && cfg.profile != nil {
+		cfg.profile.addImportResolution(time.Since(resolveStart))
+	}
+
+	mergeStart := time.Now()
+
+	merged, err := YamlRoutes(dependencyRoutes).Build()
+	if err != nil {
+		return "", err
+	}
+
+	if cfg.Profile && cfg.profile != nil {
+		cfg.profile.addMerge(time.Since(mergeStart))
+	}
+
+	return merged, nil
+}
+
+func (cfg *Config) ProfileReport() string {
+	if cfg.profile == nil {
+		return ""
+	}
+
+	return cfg.profile.String()
+}
+
+func (cfg *Config) RecordValidationTiming(d time.Duration) {
+	if cfg.profile != nil {
+		cfg.profile.addValidation(d)
+	}
 }
 
 // New returns new instance of Config with passed parameters.
