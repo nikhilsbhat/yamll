@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/fatih/color"
@@ -170,15 +171,20 @@ func renderTreeDOT(root DependencyTreeNode) string {
 
 	ids := make(map[string]string)
 	emitted := make(map[string]struct{})
+	labels := make(map[string]string)
 
 	walk = func(node DependencyTreeNode) {
 		nodeID := treeGraphNodeID(node, ids, &nextID)
-		writeGraphNode(&builder, emitted, nodeID, node.Name)
+		writeGraphNode(&builder, emitted, labels, nodeID, node.Name)
 
 		for _, child := range node.Children {
 			childID := treeGraphNodeID(child, ids, &nextID)
-			writeGraphNode(&builder, emitted, childID, child.Name)
-			fmt.Fprintf(&builder, "  %s -> %s;\n", nodeID, childID)
+			writeGraphNode(&builder, emitted, labels, childID, child.Name)
+			builder.WriteString("  ")
+			builder.WriteString(nodeID)
+			builder.WriteString(" -> ")
+			builder.WriteString(childID)
+			builder.WriteString(";\n")
 			walk(child)
 		}
 	}
@@ -200,15 +206,20 @@ func renderTreeMermaid(root DependencyTreeNode) string {
 
 	ids := make(map[string]string)
 	emitted := make(map[string]struct{})
+	labels := make(map[string]string)
 
 	walk = func(node DependencyTreeNode) {
 		nodeID := treeGraphNodeID(node, ids, &nextID)
-		writeMermaidNode(&builder, emitted, nodeID, node.Name)
+		writeMermaidNode(&builder, emitted, labels, nodeID, node.Name)
 
 		for _, child := range node.Children {
 			childID := treeGraphNodeID(child, ids, &nextID)
-			writeMermaidNode(&builder, emitted, childID, child.Name)
-			fmt.Fprintf(&builder, "  %s --> %s\n", nodeID, childID)
+			writeMermaidNode(&builder, emitted, labels, childID, child.Name)
+			builder.WriteString("  ")
+			builder.WriteString(nodeID)
+			builder.WriteString(" --> ")
+			builder.WriteString(childID)
+			builder.WriteByte('\n')
 			walk(child)
 		}
 	}
@@ -231,24 +242,43 @@ func treeGraphNodeID(node DependencyTreeNode, ids map[string]string, nextID *int
 	return id
 }
 
-func writeGraphNode(builder *strings.Builder, emitted map[string]struct{}, nodeID, name string) {
+func writeGraphNode(builder *strings.Builder, emitted map[string]struct{}, labels map[string]string, nodeID, name string) {
 	if _, exists := emitted[nodeID]; exists {
 		return
 	}
 
 	emitted[nodeID] = struct{}{}
 
-	fmt.Fprintf(builder, "  %s [label=%q];\n", nodeID, graphvizLabel(name))
+	builder.WriteString("  ")
+	builder.WriteString(nodeID)
+	builder.WriteString(" [label=")
+	builder.WriteString(strconv.Quote(cachedTreeLabel(labels, name, graphvizLabel)))
+	builder.WriteString("];\n")
 }
 
-func writeMermaidNode(builder *strings.Builder, emitted map[string]struct{}, nodeID, name string) {
+func writeMermaidNode(builder *strings.Builder, emitted map[string]struct{}, labels map[string]string, nodeID, name string) {
 	if _, exists := emitted[nodeID]; exists {
 		return
 	}
 
 	emitted[nodeID] = struct{}{}
 
-	fmt.Fprintf(builder, "  %s[%q]\n", nodeID, mermaidLabel(name))
+	builder.WriteString("  ")
+	builder.WriteString(nodeID)
+	builder.WriteByte('[')
+	builder.WriteString(strconv.Quote(cachedTreeLabel(labels, name, mermaidLabel)))
+	builder.WriteString("]\n")
+}
+
+func cachedTreeLabel(labels map[string]string, name string, formatter func(string) string) string {
+	if label, exists := labels[name]; exists {
+		return label
+	}
+
+	label := formatter(name)
+	labels[name] = label
+
+	return label
 }
 
 func graphvizLabel(name string) string {

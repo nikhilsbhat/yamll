@@ -1,38 +1,32 @@
-## yamll import
+## yamll lint
 
-Imports defined sub-YAML files as libraries
+Lints YAML imports/anchors/merges for common issues
 
 ### Synopsis
 
-Identifies dependency tree and imports them in the order to generate one single YAML file
+Runs static checks on the YAML import graph, anchors, and merge usage.
 
 ```
-yamll import [flags]
+yamll lint [flags]
 ```
 
 ### Examples
 
 ```
-yamll import --file path/to/file.yaml
-yamll import --file path/to/file.yaml --no-validation
-yamll import --file path/to/file.yaml --effective
+yamll lint -f path/to/root.yaml
 ```
 
 ### Options
 
 ```
-      --explode              when enabled, it expands any aliases and anchor tags present
   -f, --file stringArray     root yaml files to be used for importing
-  -h, --help                 help for import
+  -h, --help                 help for lint
       --limiter string       limiters to separate the yaml files post merging (default "---")
       --lock-file string     path to the lock file used for reproducible remote imports (default "yamll.lock")
   -l, --log-level string     log level for the yamll (default "INFO")
-      --merge                when enabled it merges the yaml files effectively
       --no-color             when enabled the output would not be color encoded
       --no-lock              when enabled, ignores any lock file during import/build/tree
-      --no-validation        when enabled it skips validating the final generated YAML file
       --show-pattern-files   when enabled, pattern imports in tree output will include matched filenames (default true)
-      --to-file string       name of the file to which the final imported yaml should be written to
 ```
 
 ### SEE ALSO

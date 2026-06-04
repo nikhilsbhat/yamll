@@ -150,14 +150,10 @@ func (cfg *Config) GetDependencyData(dependency string) (*Dependency, error) {
 		return nil, &errors.YamllError{Message: fmt.Sprintf("invalid import statement: %q", dependency)}
 	}
 
-	const (
-		lengthOfImportWIthAuth = 1
-		dependencyImportLength = 2
-	)
+	rawImport := strings.TrimSpace(strings.TrimPrefix(importStatement, "##++"))
+	dependencyPath, authPart, hasAuth := strings.Cut(rawImport, ";")
+	dependencyPath = strings.TrimSpace(dependencyPath)
 
-	imports := strings.SplitN(strings.TrimSpace(strings.TrimPrefix(importStatement, "##++")), ";", dependencyImportLength)
-
-	dependencyPath := strings.TrimSpace(imports[0])
 	if dependencyPath == "" {
 		return nil, &errors.YamllError{Message: "import path cannot be empty"}
 	}
@@ -169,10 +165,10 @@ func (cfg *Config) GetDependencyData(dependency string) (*Dependency, error) {
 	dependencyData := &Dependency{Path: dependencyPath}
 	dependencyData.IdentifyType()
 
-	if len(imports) > lengthOfImportWIthAuth {
+	if hasAuth {
 		cfg.log.Debug("auth is set for the import, and implementing the same", slog.String("dependency", dependency))
 
-		authConfig, err := envsubst.String(imports[lengthOfImportWIthAuth])
+		authConfig, err := envsubst.String(authPart)
 		if err != nil {
 			return nil, err
 		}

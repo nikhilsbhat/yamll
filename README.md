@@ -237,7 +237,12 @@ Using `yaml tree` will print dependencies just like the Linux `tree command`.
 
 ```sh
 yamll tree -f import.yaml
+yamll tree -f import.yaml --output=json
+yamll tree -f import.yaml --output=dot
+yamll tree -f import.yaml --output=mermaid
 ```
+
+`yamll tree` defaults to the current text tree output. Use `--output=json` for structured data, `--output=dot` for Graphviz, and `--output=mermaid` for Mermaid diagrams.
 
 **Output**:
 ```sh
@@ -246,17 +251,33 @@ yamll tree -f import.yaml
     │   └── internal/fixtures/base3.yaml
     ├── internal/fixtures/base2.yaml
     │   └── internal/fixtures/base3.yaml
-    ├── internal/fixtures/*.test.yaml
-    │   ├── /Users/nikhilbhat/my-opensource/yamll/internal/fixtures/base.test.yaml
-    │   ├── /Users/nikhilbhat/my-opensource/yamll/internal/fixtures/base2.test.yaml
-    │   ├── /Users/nikhilbhat/my-opensource/yamll/internal/fixtures/base3.test.yaml
+    ├── internal/fixtures/*.test.yaml (3 files)
+    │   ├── /Users/youruser/my-opensource/yamll/internal/fixtures/base.test.yaml
+    │   ├── /Users/youruser/my-opensource/yamll/internal/fixtures/base2.test.yaml
+    │   ├── /Users/youruser/my-opensource/yamll/internal/fixtures/base3.test.yaml
     │   ├── internal/fixtures/base4.yaml
+    │   ├── internal/fixtures/*.testing.yaml (3 files)
+    │   │   ├── /Users/youruser/my-opensource/yamll/internal/fixtures/one.testing.yaml
+    │   │   ├── /Users/youruser/my-opensource/yamll/internal/fixtures/three.testing.yaml
+    │   │   └── /Users/youruser/my-opensource/yamll/internal/fixtures/two.testing.yaml
     │   ├── internal/fixtures/base5.yaml
     │   └── internal/fixtures/base4.yaml
     ├── https://github.com/nikhilsbhat/yamll@main?path=internal/fixtures/base2.yaml
     │   └── internal/fixtures/base3.yaml
-    └── http://localhost:3000/database.yaml
+    └── http://localhost:3000/database
 ```
+
+### Lint
+
+Need a quick static check before building or tracing? `yamll lint` scans the dependency graph for common issues like duplicate keys, unresolved imports, unused imports, circular refs, invalid anchors, and conflicting merges.
+
+**Example**:
+
+```sh
+yamll lint -f import.yaml
+```
+
+If issues are found, `yamll` prints them and exits with a non-zero status.
 
 ### Trace
 

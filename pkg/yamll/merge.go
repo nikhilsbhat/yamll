@@ -4,20 +4,18 @@ import (
 	"fmt"
 	"log/slog"
 	"sort"
+	"strings"
 
-	"github.com/fatih/color"
 	"github.com/nikhilsbhat/yamll/pkg/errors"
-	"github.com/thoas/go-funk"
 )
-
-// YamlTree holds the information of defined yaml dependencies.
-type YamlTree struct {
-	Value       string
-	Left, Right *YamlTree
-}
 
 // mergeData combines the YAML file data according to the hierarchy.
 func (cfg *Config) mergeData(src string, routes YamlRoutes) (Yaml, error) {
+	var builder strings.Builder
+
+	builder.Grow(len(src) + len(routes)*64)
+	builder.WriteString(src)
+
 	for _, file := range cfg.rootFiles(routes) {
 		fileData := routes[file]
 
@@ -26,12 +24,20 @@ func (cfg *Config) mergeData(src string, routes YamlRoutes) (Yaml, error) {
 			return "", err
 		}
 
-		src = out + fmt.Sprintf("\n%s\n# Source: %s\n%s\n", cfg.Limiter, file, fileData.DataRaw)
+		src = out
+		builder.WriteString(out)
+		builder.WriteString("\n")
+		builder.WriteString(cfg.Limiter)
+		builder.WriteString("\n# Source: ")
+		builder.WriteString(file)
+		builder.WriteString("\n")
+		builder.WriteString(fileData.DataRaw)
+		builder.WriteString("\n")
 
 		cfg.log.Debug("root file was imported successfully", slog.String("file", file))
 	}
 
-	return Yaml(src), nil
+	return Yaml(builder.String()), nil
 }
 
 // merge actually merges the data when invoked with correct parameters.
@@ -82,11 +88,7 @@ func (cfg *Config) merge(src string, routes YamlRoutes, file string, visiting ma
 
 // CheckInterDependency verifies for deadlock dependencies and raises an error if two YAML files import each other.
 func (yamlRoutes YamlRoutes) CheckInterDependency(file, dependency string) error {
-	if funk.Contains(yamlRoutes[file].Dependency, func(dep *Dependency) bool {
-		return dep.Path == dependency
-	}) && funk.Contains(yamlRoutes[dependency].Dependency, func(dep *Dependency) bool {
-		return dep.Path == file
-	}) {
+	if containsDependency(yamlRoutes[file].Dependency, dependency) && containsDependency(yamlRoutes[dependency].Dependency, file) {
 		return &errors.YamllError{Message: fmt.Sprintf("import cycles not allowed '%s' '%s'", file, dependency)}
 	}
 
@@ -94,7 +96,7 @@ func (yamlRoutes YamlRoutes) CheckInterDependency(file, dependency string) error
 }
 
 func (cfg *Config) rootFiles(routes YamlRoutes) []string {
-	var files []string
+	files := make([]string, 0, len(cfg.Files)+len(routes))
 
 	seen := make(map[string]struct{}, len(cfg.Files))
 
@@ -126,8 +128,8 @@ func (cfg *Config) rootFiles(routes YamlRoutes) []string {
 
 func (yamlRoutes YamlRoutes) OrderedFiles() []string {
 	var (
-		rootFiles     []string
-		leftoverFiles []string
+		rootFiles     = make([]string, 0, len(yamlRoutes))
+		leftoverFiles = make([]string, 0, len(yamlRoutes))
 	)
 
 	for file, route := range yamlRoutes {
@@ -163,6 +165,16 @@ func (yamlRoutes YamlRoutes) OrderedFiles() []string {
 	orderedFiles = append(orderedFiles, leftoverFiles...)
 
 	return orderedFiles
+}
+
+func containsDependency(dependencies []*Dependency, target string) bool {
+	for _, dep := range dependencies {
+		if dep != nil && dep.Path == target {
+			return true
+		}
+	}
+
+	return false
 }
 
 func (yamlRoutes YamlRoutes) appendOrderedFile(file string, seen map[string]struct{}, visiting map[string]struct{}, orderedFiles *[]string) {
@@ -205,62 +217,5 @@ func routeLess(routes YamlRoutes, left, right string) bool {
 		return leftRoute.Index < rightRoute.Index
 	default:
 		return leftRoute.File < rightRoute.File
-	}
-}
-
-// PrintDependencyTree recursively prints the dependency tree.
-func (yamlRoutes YamlRoutes) PrintDependencyTree(name string, prefix string, isTail, noColor bool, showPatternFiles bool) {
-	color.NoColor = noColor
-
-	if data, exists := yamlRoutes[name]; exists {
-		connector := color.GreenString("├── ")
-		if isTail {
-			connector = color.GreenString("└── ")
-		}
-
-		displayName := name
-		if isPattern(name) && len(data.SourceFile) != 0 {
-			displayName = fmt.Sprintf("%s (%d files)", name, len(data.SourceFile))
-		}
-
-		fmt.Printf("%s%s%s\n", prefix, connector, color.MagentaString(displayName))
-
-		newPrefix := prefix
-		if isTail {
-			newPrefix += "    "
-		} else {
-			newPrefix += color.GreenString("│   ")
-		}
-
-		patternFiles := make([]string, 0)
-
-		if showPatternFiles && isPattern(name) {
-			for _, src := range data.SourceFile {
-				if src.Name != "" {
-					patternFiles = append(patternFiles, src.Name)
-				}
-			}
-
-			sort.Strings(patternFiles)
-		}
-
-		totalChildren := len(patternFiles) + len(data.Dependency)
-		childIndex := 0
-
-		for _, file := range patternFiles {
-			childIndex++
-
-			childConnector := color.GreenString("├── ")
-			if childIndex == totalChildren {
-				childConnector = color.GreenString("└── ")
-			}
-
-			fmt.Printf("%s%s%s\n", newPrefix, childConnector, color.MagentaString(file))
-		}
-
-		for _, dep := range data.Dependency {
-			childIndex++
-			yamlRoutes.PrintDependencyTree(dep.Path, newPrefix, childIndex == totalChildren, noColor, showPatternFiles)
-		}
 	}
 }

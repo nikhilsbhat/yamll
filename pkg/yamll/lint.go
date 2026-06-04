@@ -85,13 +85,13 @@ func (cfg *Config) Lint() (LintReport, error) {
 func lintCircularRefs(routes YamlRoutes) []LintIssue {
 	issues := make([]LintIssue, 0)
 
-	visiting := make(map[string]bool)
-	visited := make(map[string]bool)
+	visiting := make(map[string]struct{})
+	visited := make(map[string]struct{})
 
 	var dfs func(file string, stack []string)
 
 	dfs = func(file string, stack []string) {
-		if visiting[file] {
+		if _, exists := visiting[file]; exists {
 			// cycle
 			issues = append(issues, LintIssue{
 				Code:    LintCircularRefs,
@@ -102,13 +102,13 @@ func lintCircularRefs(routes YamlRoutes) []LintIssue {
 			return
 		}
 
-		if visited[file] {
+		if _, exists := visited[file]; exists {
 			return
 		}
 
-		visiting[file] = true
+		visiting[file] = struct{}{}
 
-		defer func() { visiting[file] = false }()
+		defer delete(visiting, file)
 
 		route := routes[file]
 		if route != nil {
@@ -121,7 +121,7 @@ func lintCircularRefs(routes YamlRoutes) []LintIssue {
 			}
 		}
 
-		visited[file] = true
+		visited[file] = struct{}{}
 	}
 
 	for _, file := range routes.OrderedFiles() {

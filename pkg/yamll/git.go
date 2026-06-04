@@ -141,45 +141,52 @@ func (dependency *Dependency) getGitMetaData() (*gitMeta, error) {
 
 	var gitBaseURL, remainingPath string
 
-	const (
-		gitURLElement        = 3
-		correctGitURLElement = 2
-	)
-
 	if isSSH {
-		gitParsedURL := strings.SplitN(dependency.Path, "@", gitURLElement)
-		if len(gitParsedURL) != gitURLElement {
+		afterScheme := strings.TrimPrefix(dependency.Path, "ssh://")
+		userHost, sshPath, ok := strings.Cut(afterScheme, "@") //nolint:varnamelen
+
+		if !ok || userHost == "" || sshPath == "" {
 			return nil, &errors.YamllError{Message: fmt.Sprintf("unable to split git url '%s'", dependency.Path)}
 		}
 
-		gitBaseURL = fmt.Sprintf("git@%v", gitParsedURL[1])
+		refHost, refPath, ok := strings.Cut(sshPath, "@")
+		if !ok || refHost == "" || refPath == "" {
+			return nil, &errors.YamllError{Message: fmt.Sprintf("unable to split git url '%s'", dependency.Path)}
+		}
 
-		remainingPath = fmt.Sprintf("https://%v@%v", gitParsedURL[1], gitParsedURL[correctGitURLElement])
+		gitBaseURL = "git@" + userHost
+
+		remainingPath = "https://" + userHost + "@" + refPath
 	} else {
-		gitParsedURL := strings.SplitN(dependency.Path, "@", correctGitURLElement)
-		if len(gitParsedURL) != correctGitURLElement {
+		baseURL, _, ok := strings.Cut(dependency.Path, "@") //nolint:varnamelen
+		if !ok || baseURL == "" {
 			return nil, &errors.YamllError{Message: fmt.Sprintf("unable to parse git url '%s'", dependency.Path)}
 		}
 
-		gitBaseURL = gitParsedURL[0]
+		gitBaseURL = baseURL
 
 		remainingPath = dependency.Path
 	}
 
-	parsedRef := strings.SplitN(strings.SplitN(remainingPath, "?", correctGitURLElement)[0], "@", correctGitURLElement)
-	if len(parsedRef) != correctGitURLElement {
+	refPath, query, ok := strings.Cut(remainingPath, "?") //nolint:varnamelen
+	if !ok || query == "" {
+		return nil, &errors.YamllError{Message: fmt.Sprintf("unable to parse path from '%s'", remainingPath)}
+	}
+
+	_, referenceName, ok := strings.Cut(refPath, "@") //nolint:varnamelen
+	if !ok || referenceName == "" {
 		return nil, &errors.YamllError{Message: fmt.Sprintf("unable to parse ref from '%s'", remainingPath)}
 	}
 
-	parsedPath := strings.SplitN(strings.SplitN(remainingPath, "?", correctGitURLElement)[1], "=", correctGitURLElement)
-	if len(parsedPath) != correctGitURLElement {
+	key, pathValue, ok := strings.Cut(query, "=") //nolint:varnamelen
+	if !ok || key == "" || pathValue == "" {
 		return nil, &errors.YamllError{Message: fmt.Sprintf("unable to parse path from '%s'", remainingPath)}
 	}
 
 	return &gitMeta{
 		gitBaseURL:    gitBaseURL,
-		referenceName: parsedRef[1],
-		path:          parsedPath[1],
+		referenceName: referenceName,
+		path:          pathValue,
 		ssh:           isSSH,
 	}, nil
 }

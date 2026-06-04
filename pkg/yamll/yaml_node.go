@@ -13,11 +13,13 @@ const yamlIndent = 2
 
 // Explode resolves and substitutes all anchors and aliases in the given YAML.
 func (yml Yaml) Explode() (Yaml, error) {
-	yamlDataS := strings.Split(string(yml), "---")
+	rawYAML := string(yml)
 
 	var yamlFilesBuilder strings.Builder
 
-	for _, yamlData := range yamlDataS {
+	yamlFilesBuilder.Grow(len(rawYAML) + len(rawYAML)/4)
+
+	for yamlData := range strings.SplitSeq(rawYAML, "---") {
 		yamlData = strings.TrimSpace(yamlData)
 		if len(yamlData) == 0 {
 			continue
@@ -30,7 +32,7 @@ func (yml Yaml) Explode() (Yaml, error) {
 
 		yamlMap := make(Data)
 
-		anchorRefs := strings.NewReader(string(yml))
+		anchorRefs := strings.NewReader(rawYAML)
 
 		decodeOpts := []yaml.DecodeOption{
 			yaml.UseOrderedMap(),
