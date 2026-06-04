@@ -267,6 +267,29 @@ yamll tree -f import.yaml --output=mermaid
     └── http://localhost:3000/database
 ```
 
+### Impact Analysis
+
+Want to see the blast radius of a shared file? `yamll impact` walks the dependency graph in reverse and lists the downstream files that would be affected by a change.
+
+**Example**:
+
+```sh
+yamll impact common.yaml
+yamll impact -f internal/fixtures/import.yaml internal/fixtures/base.yaml
+```
+
+**Output**:
+
+```text
+Affected files:
+  api.yaml
+  ingress.yaml
+  web.yaml
+  jobs.yaml
+
+Total downstream dependencies: 17
+```
+
 ### Lint
 
 Need a quick static check before building or tracing? `yamll lint` scans the dependency graph for common issues like duplicate keys, unresolved imports, unused imports, circular refs, invalid anchors, and conflicting merges.

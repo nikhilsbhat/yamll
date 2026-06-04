@@ -1,35 +1,33 @@
-## yamll build
+## yamll impact
 
-Builds YAML files substituting imports
+Shows downstream files impacted by a dependency
 
 ### Synopsis
 
-Builds YAML by substituting all anchors and aliases defined in sub-YAML files defined as libraries
+Traverses the reverse dependency graph and lists all files affected by the given YAML file.
 
 ```
-yamll build [flags]
+yamll impact [flags] <file>
 ```
 
 ### Examples
 
 ```
-yamll build --file path/to/file.yaml
+yamll impact common.yaml
+yamll impact -f internal/fixtures/import.yaml internal/fixtures/base.yaml
 ```
 
 ### Options
 
 ```
   -f, --file stringArray     root yaml files to be used for importing
-  -h, --help                 help for build
+  -h, --help                 help for impact
       --limiter string       limiters to separate the yaml files post merging (default "---")
       --lock-file string     path to the lock file used for reproducible remote imports (default "yamll.lock")
   -l, --log-level string     log level for the yamll (default "INFO")
       --no-color             when enabled the output would not be color encoded
       --no-lock              when enabled, ignores any lock file during import/build/tree
-      --no-validation        when enabled it skips validating the final generated YAML file
-      --profile              when enabled it prints timing information for build phases
       --show-pattern-files   when enabled, pattern imports in tree output will include matched filenames (default true)
-      --to-file string       name of the file to which the final imported yaml should be written to
 ```
 
 ### SEE ALSO

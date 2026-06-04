@@ -30,6 +30,7 @@ func getYamllCommands() *cobra.Command {
 	command.commands = append(command.commands, getImportCommand())
 	command.commands = append(command.commands, getTreeCommand())
 	command.commands = append(command.commands, getBuildCommand())
+	command.commands = append(command.commands, getImpactCommand())
 	command.commands = append(command.commands, getTraceCommand())
 	command.commands = append(command.commands, getLockCommand())
 	command.commands = append(command.commands, getLintCommand())

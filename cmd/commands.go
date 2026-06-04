@@ -229,6 +229,47 @@ yamll tree --file path/to/file.yaml --output=mermaid`,
 	return treeCommand
 }
 
+func getImpactCommand() *cobra.Command {
+	impactCommand := &cobra.Command{
+		Use:   "impact [flags] <file>",
+		Short: "Shows downstream files impacted by a dependency",
+		Long:  "Traverses the reverse dependency graph and lists all files affected by the given YAML file.",
+		Example: `yamll impact common.yaml
+yamll impact -f internal/fixtures/import.yaml internal/fixtures/base.yaml`,
+		Args:    cobra.ExactArgs(1),
+		PreRunE: setCLIClient,
+		RunE: func(_ *cobra.Command, args []string) error {
+			target := args[0]
+			if target != "" {
+				cliCfg.ImpactTarget = target
+			}
+
+			cfg := yamll.New(false, yamllCfg.LogLevel, yamllCfg.Limiter, cliCfg.Files...)
+			cfg.SetLogger()
+			logger = cfg.GetLogger()
+			cfg.LockFile = cliCfg.LockFile
+			cfg.NoLock = cliCfg.NoLock
+
+			report, err := cfg.Impact(cliCfg.ImpactTarget)
+			if err != nil {
+				logger.Error("errored generating impact report", slog.Any("err", err))
+				os.Exit(1)
+			}
+
+			if _, err = fmt.Fprint(writer, report.String()); err != nil {
+				return err
+			}
+
+			return nil
+		},
+	}
+
+	impactCommand.SilenceErrors = true
+	registerCommonFlags(impactCommand)
+
+	return impactCommand
+}
+
 func getTraceCommand() *cobra.Command {
 	traceCommand := &cobra.Command{
 		Use:   "trace [flags] <file:path|path>",

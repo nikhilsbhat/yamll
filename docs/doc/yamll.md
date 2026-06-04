@@ -26,6 +26,7 @@ yamll [command] [flags]
 ### SEE ALSO
 
 * [yamll build](yamll_build.md)	 - Builds YAML files substituting imports
+* [yamll impact](yamll_impact.md)	 - Shows downstream files impacted by a dependency
 * [yamll import](yamll_import.md)	 - Imports defined sub-YAML files as libraries
 * [yamll lint](yamll_lint.md)	 - Lints YAML imports/anchors/merges for common issues
 * [yamll lock](yamll_lock.md)	 - Generates a lock file for reproducible remote imports

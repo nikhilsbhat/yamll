@@ -11,6 +11,7 @@ type Config struct {
 	NoColor      bool
 	ShowPattern  bool
 	TreeOutput   string
+	ImpactTarget string
 	Profile      bool
 	LockFile     string
 	NoLock       bool
