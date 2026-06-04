@@ -6,26 +6,26 @@
 [![shields](https://img.shields.io/github/v/tag/nikhilsbhat/yamll.svg)](https://github.com/nikhilsbhat/yamll/tags)
 [![shields](https://img.shields.io/github/downloads/nikhilsbhat/yamll/total.svg)](https://github.com/nikhilsbhat/yamll/releases)
 
-Yamll is a powerful tool for managing and merging multiple `YAML` files
+Yamll turns a pile of YAML files into one coherent config.
 
 ## Introduction
 
-This allows you to define dependencies on other `YAML` files, similar to how programming languages manage dependencies.
+Define YAML dependencies the way code manages libraries.
 
-It ensures a single comprehensive YAML file by resolving interdependencies and preventing import cycles.
+Yamll resolves the graph, merges the result, and catches import cycles before they turn into pain.
 
 ## Features
 
 - Merge multiple `YAML` files into one
-- Handle imports and dependencies seamlessly
-- Detect and prevent import cycles
-- Easy to use with clear error reporting
-- Supports importing files from various source like `local path`, `GIT` repo and `HTTPS` source
+- Resolve imports and dependencies across local, Git, and HTTP sources
+- Catch import cycles, duplicate keys, and other dependency problems early
+- Trace values back to their source
+- Generate lock files for reproducible remote imports
 
 ### Authentication
-- If authentication is required to connect to remote source defined. Creds can be passed as `environment` variable and `yamll` evaluates it
-- In case of GIT, `yamll` supports both `ssh` and `http` based git URLs.
-- All supported authentication parameters are defined [here](https://github.com/nikhilsbhat/yamll/blob/main/pkg/yamll/dependency.go#L31).
+- Pass credentials through `environment` variables and `yamll` will resolve them at runtime
+- Git imports support both `ssh` and `http` URLs
+- All supported authentication parameters are defined [here](https://github.com/nikhilsbhat/yamll/blob/main/pkg/yamll/dependency.go#L34)
 
 ## Installation
 
@@ -70,7 +70,7 @@ docker pull ghcr.io/nikhilsbhat/yamll:<github-release-tag>
 
 ### Basic Usage
 
-To merge multiple YAML files, simply specify the base YAML files as arguments:
+Point `yamll` at your root YAML file and it pulls the graph together:
 
 ```sh
 yamll import -f import.yaml
@@ -78,22 +78,19 @@ yamll import -f import.yaml
 
 ### Handling Imports
 
-YAML files can specify imports using the comments that starts with `##++`. `yamll` will resolve these imports and merge the contents.
-
-It can construct the dependency tree and import them in the correct order, with each dependency able to have its own defined dependencies.
+Imports live in comments that start with `##++`. `yamll` resolves them, walks the dependency tree, and merges everything in the right order.
 
 #### Handling Wildcards
 
-`YAMLL` supports importing YAML files using wildcard patterns.
+Wildcard imports keep noisy file lists out of the way.
 
-Filenames matching the pattern are excluded from visibility in the `tree`, `import`, and `build` commands. Instead, the data from all matching files is aggregated under the specified pattern.
+Filenames matching the pattern stay hidden in `tree`, `import`, and `build`. Their data is folded under the pattern itself.
 
-For example, the pattern `##++internal/fixtures/*.test.yaml` might match files like `one.test.yaml`, `two.test.yaml`, and `three.test.yaml`. 
+For example, `##++internal/fixtures/*.test.yaml` might match `one.test.yaml`, `two.test.yaml`, and `three.test.yaml`.
 
-However, their individual filenames (`one.test.yaml`, `two.test.yaml`, and `three.test.yaml`) will not be displayed in the above commands.</br> 
-Instead, their combined data will appear under the pattern `##++internal/fixtures/*.test.yaml`. (this makes it easier to manage the cyclic dependency and many others)
+Their names disappear from the command output, and the combined content appears under the pattern import. It keeps cyclic graphs and large fixture sets readable.
 
-Following examples tries to illustrate all of them.
+The examples below show the common cases.
 
 **Example** `root.yaml`:
 
@@ -229,9 +226,7 @@ workflow: *mysqldatabase
 
 ### Dependency Tree
 
-Want to see all your dependencies in a tree format? This `yamll` tool supports that too.
-
-Using `yaml tree` will print dependencies just like the Linux `tree command`.
+Need the graph? `yamll tree` prints it like a filesystem tree.
 
 **Example**:
 
@@ -242,7 +237,7 @@ yamll tree -f import.yaml --output=dot
 yamll tree -f import.yaml --output=mermaid
 ```
 
-`yamll tree` defaults to the current text tree output. Use `--output=json` for structured data, `--output=dot` for Graphviz, and `--output=mermaid` for Mermaid diagrams.
+`yamll tree` defaults to the text tree. Use `--output=json` for structured data, `--output=dot` for Graphviz, and `--output=mermaid` for Mermaid.
 
 **Output**:
 ```sh
@@ -269,7 +264,7 @@ yamll tree -f import.yaml --output=mermaid
 
 ### Impact Analysis
 
-Want to see the blast radius of a shared file? `yamll impact` walks the dependency graph in reverse and lists the downstream files that would be affected by a change.
+Need the blast radius? `yamll impact` walks the graph in reverse and shows every downstream file that depends on the target.
 
 **Example**:
 
@@ -292,7 +287,7 @@ Total downstream dependencies: 17
 
 ### Lint
 
-Need a quick static check before building or tracing? `yamll lint` scans the dependency graph for common issues like duplicate keys, unresolved imports, unused imports, circular refs, invalid anchors, and conflicting merges.
+Want a fast sanity check? `yamll lint` scans the graph for duplicate keys, unresolved imports, unused imports, circular refs, invalid anchors, and conflicting merges.
 
 **Example**:
 
@@ -304,9 +299,9 @@ If issues are found, `yamll` prints them and exits with a non-zero status.
 
 ### Trace
 
-Need to figure out where a specific rendered value came from?
+Need the origin of a rendered value?
 
-`yamll trace` maps a generated YAML path back to its source file and line number (similar to source maps in compilers).
+`yamll trace` maps a generated YAML path back to the source file and line number, compiler-style.
 
 **Example**:
 
@@ -324,7 +319,7 @@ origin: internal/fixtures/base5.yaml:2
 
 ### Lock File
 
-Remote imports (git/URL) are powerful, but can drift over time. `yamll lock` generates a lock file with resolved commits and checksums, and subsequent commands will honor it by default.
+Remote imports are powerful, but drift. `yamll lock` pins resolved commits and checksums so future runs stay reproducible.
 
 More details: [LOCKFILE.md](docs/LOCKFILE.md)
 

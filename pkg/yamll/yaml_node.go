@@ -30,7 +30,7 @@ func (yml Yaml) Explode() (Yaml, error) {
 			sourceMetadata = scanner.Text()
 		}
 
-		yamlMap := make(Data)
+		var yamlMap yaml.MapSlice
 
 		anchorRefs := strings.NewReader(rawYAML)
 

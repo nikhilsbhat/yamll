@@ -14,17 +14,15 @@ func (cfg *Config) mergeData(src string, routes YamlRoutes) (Yaml, error) {
 	var builder strings.Builder
 
 	builder.Grow(len(src) + len(routes)*64)
-	builder.WriteString(src)
 
 	for _, file := range cfg.rootFiles(routes) {
 		fileData := routes[file]
 
-		out, err := cfg.merge(src, routes, file, make(map[string]bool))
+		out, err := cfg.merge("", routes, file, make(map[string]bool))
 		if err != nil {
 			return "", err
 		}
 
-		src = out
 		builder.WriteString(out)
 		builder.WriteString("\n")
 		builder.WriteString(cfg.Limiter)
