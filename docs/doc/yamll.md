@@ -4,7 +4,7 @@ A utility to facilitate the inclusion of sub-YAML files as libraries.
 
 ### Synopsis
 
-It identifies imports declared in YAML files and merges them to generate a single final YAML file, similar to importing libraries in programming.
+It resolves shared YAML imports into one coherent output, while preserving where each piece came from.
 
 ```
 yamll [command] [flags]

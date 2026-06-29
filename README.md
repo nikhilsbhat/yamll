@@ -6,25 +6,62 @@
 [![shields](https://img.shields.io/github/v/tag/nikhilsbhat/yamll.svg)](https://github.com/nikhilsbhat/yamll/tags)
 [![shields](https://img.shields.io/github/downloads/nikhilsbhat/yamll/total.svg)](https://github.com/nikhilsbhat/yamll/releases)
 
-Yamll turns a pile of YAML files into one coherent config.
+Yamll keeps shared YAML from turning into copy-paste drift.
+It resolves imports, expands anchors, and lets you trace every field back to where it came from.
 
-## Introduction
+![Yamll terminal demo](docs/assets/yamll-terminal-demo.gif)
 
-Define YAML dependencies the way code manages libraries.
+## Why Yamll
 
-Yamll resolves the graph, merges the result, and catches import cycles before they turn into pain.
+When the same config gets repeated across environments, changes start to drift.
+Yamll lets you define shared YAML once, import it from files, Git, HTTP, or OCI, and inspect the graph when something breaks.
 
 ## Features
 
-- Merge multiple `YAML` files into one
-- Resolve imports and dependencies across local, Git, and HTTP sources
-- Catch import cycles, duplicate keys, and other dependency problems early
-- Trace values back to their source
-- Generate lock files for reproducible remote imports
+- Merge multiple `YAML` files into one output
+- Resolve imports across local files, Git, HTTP, and OCI sources
+- Catch import cycles, duplicate keys, invalid anchors, and merge issues early
+- Trace rendered values back to their source file and line
+- Lock remote imports for reproducible builds
+
+## Quick Demo
+
+Start with one root file and one shared base:
+
+```yaml
+# root.yaml
+##++internal/fixtures/base.yaml
+
+app:
+  name: api
+  <<: *default
+```
+
+```yaml
+# internal/fixtures/base.yaml
+default: &default
+  apiVersion: v1
+  kind: ConfigMap
+  metadata:
+    name: base-config
+```
+
+Build it:
+
+```sh
+yamll import -f root.yaml
+```
+
+Then trace a value back to its origin:
+
+```sh
+yamll trace root.yaml:app.metadata.name
+```
 
 ### Authentication
 - Pass credentials through `environment` variables and `yamll` will resolve them at runtime
 - Git imports support both `ssh` and `http` URLs
+- OCI imports work with registry-hosted config bundles and artifacts
 - All supported authentication parameters are defined [here](https://github.com/nikhilsbhat/yamll/blob/main/pkg/yamll/dependency.go#L34)
 
 ## Installation
@@ -98,6 +135,7 @@ The examples below show the common cases.
 ##++internal/fixtures/base.yaml
 ##++internal/fixtures/*.test.yaml
 ##++git+https://github.com/nikhilsbhat/yamll@main?path=internal/fixtures/base2.yaml;{"user_name":"${GIT_USERNAME}","password":"${GITHUB_TOKEN}"}
+##++oci://ghcr.io/company/platform-config:v1
 ##++http://localhost:3000/database.yaml
 
 config2:

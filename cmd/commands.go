@@ -20,7 +20,7 @@ func getRootCommand() *cobra.Command {
 	rootCommand := &cobra.Command{
 		Use:   "yamll [command]",
 		Short: "A utility to facilitate the inclusion of sub-YAML files as libraries.",
-		Long:  `It identifies imports declared in YAML files and merges them to generate a single final YAML file, similar to importing libraries in programming.`,
+		Long:  `It resolves shared YAML imports into one coherent output, while preserving where each piece came from.`,
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			return cmd.Usage()

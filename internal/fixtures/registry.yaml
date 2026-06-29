@@ -1,0 +1,4 @@
+editor: &editor
+  editor:
+    - intellij
+    - visual_code
