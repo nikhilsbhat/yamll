@@ -133,39 +133,38 @@ func gitCloneProgressWriter(log *slog.Logger) io.Writer {
 	return nil
 }
 
-//nolint:gomnd
 func (dependency *Dependency) getGitMetaData() (*gitMeta, error) {
-	dependency.Path = strings.ReplaceAll(dependency.Path, "git+", "")
+	dependencyPath := strings.TrimPrefix(dependency.Path, TypeGit)
 
-	isSSH := strings.HasPrefix(dependency.Path, "ssh://")
+	isSSH := strings.HasPrefix(dependencyPath, "ssh://")
 
 	var gitBaseURL, remainingPath string
 
 	if isSSH {
-		afterScheme := strings.TrimPrefix(dependency.Path, "ssh://")
+		afterScheme := strings.TrimPrefix(dependencyPath, "ssh://")
 		userHost, sshPath, ok := strings.Cut(afterScheme, "@") //nolint:varnamelen
 
 		if !ok || userHost == "" || sshPath == "" {
-			return nil, &errors.YamllError{Message: fmt.Sprintf("unable to split git url '%s'", dependency.Path)}
+			return nil, &errors.YamllError{Message: fmt.Sprintf("unable to split git url '%s'", dependencyPath)}
 		}
 
 		refHost, refPath, ok := strings.Cut(sshPath, "@")
 		if !ok || refHost == "" || refPath == "" {
-			return nil, &errors.YamllError{Message: fmt.Sprintf("unable to split git url '%s'", dependency.Path)}
+			return nil, &errors.YamllError{Message: fmt.Sprintf("unable to split git url '%s'", dependencyPath)}
 		}
 
 		gitBaseURL = "git@" + userHost
 
 		remainingPath = "https://" + userHost + "@" + refPath
 	} else {
-		baseURL, _, ok := strings.Cut(dependency.Path, "@") //nolint:varnamelen
+		baseURL, _, ok := strings.Cut(dependencyPath, "@") //nolint:varnamelen
 		if !ok || baseURL == "" {
-			return nil, &errors.YamllError{Message: fmt.Sprintf("unable to parse git url '%s'", dependency.Path)}
+			return nil, &errors.YamllError{Message: fmt.Sprintf("unable to parse git url '%s'", dependencyPath)}
 		}
 
 		gitBaseURL = baseURL
 
-		remainingPath = dependency.Path
+		remainingPath = dependencyPath
 	}
 
 	refPath, query, ok := strings.Cut(remainingPath, "?") //nolint:varnamelen

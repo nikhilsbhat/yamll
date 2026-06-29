@@ -1,6 +1,6 @@
 # Lock File (yamll.lock)
 
-`yamll` can resolve YAML imports from remote sources (git, URLs) and from file patterns. Remote sources are powerful but can drift over time. A lock file makes these imports reproducible by recording resolved versions and checksums.
+`yamll` can resolve YAML imports from remote sources (git, URLs, OCI) and from file patterns. Remote sources are powerful but can drift over time. A lock file makes these imports reproducible by recording resolved versions and checksums, and `yamll` will fail a run if the fetched content no longer matches the lock.
 
 This document describes how `yamll.lock` works today.
 
@@ -43,7 +43,7 @@ For each resolved dependency, it records:
 - `git_commit`: the exact commit SHA used for git imports (when applicable).
 - `constraint`: the ref that was requested in the git import (tag/branch/sha), when it can be inferred from the import string.
 
-Pattern imports (`*.yaml`) are expanded and the lock includes a checksum for each matched file as well as the aggregated pattern node.
+Pattern imports (`*.yaml`) are expanded and the lock includes a checksum for each matched file.
 
 ## How Reproducibility Works
 
@@ -55,6 +55,8 @@ When a dependency is a git import, and there is a matching lock entry, the impor
 - locked: `git+https://host/org/repo@<commitSHA>?path=base.yaml`
 
 This ensures the same content is fetched even if `v1.2.3` is a moving tag or a branch.
+
+After resolution, `yamll` compares the fetched checksum against the lock entry. If the content changed, the command fails and tells you to regenerate the lock file.
 
 If no lock file is found (or `--no-lock` is set), `yamll` behaves as it did previously.
 
@@ -96,6 +98,5 @@ Each entry may include:
 ## Limitations (Current)
 
 - Lock matching uses the exact `source` string. If you change import strings in your YAML files, you should regenerate the lock.
-- URL imports are checksummed, but are not automatically pinned unless the URL itself is versioned.
-- The current implementation focuses on reproducibility for git imports by pinning to commit SHA.
-
+- URL and OCI imports are validated by checksum, but are not automatically pinned unless the source itself is versioned.
+- Pattern imports fail if any matched file changes without regenerating the lock.

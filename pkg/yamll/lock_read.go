@@ -38,7 +38,7 @@ func (cfg *Config) loadLockEntries() (map[string]LockEntry, error) {
 			continue
 		}
 
-		entries[entry.Source] = entry
+		entries[lockEntryKey(entry.Source, entry.PatternFile)] = entry
 	}
 
 	return entries, nil

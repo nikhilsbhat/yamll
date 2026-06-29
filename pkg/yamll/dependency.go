@@ -2,6 +2,8 @@ package yamll
 
 import (
 	"bufio"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"log/slog"
@@ -62,8 +64,10 @@ func (cfg *Config) ResolveDependencies(routes map[string]*YamlData, dependencies
 			return nil, &errors.YamllError{Message: "dependency path is nil"}
 		}
 
+		originalSource := dependencyPath.Path
+
 		if lockEntries != nil && dependencyPath.Type == TypeGit {
-			if entry, ok := lockEntries[dependencyPath.Path]; ok && entry.GitCommit != "" {
+			if entry, ok := lockEntries[lockEntryKey(dependencyPath.Path, "")]; ok && entry.GitCommit != "" {
 				dependencyPath.Path = pinGitImportToCommit(dependencyPath.Path, entry.GitCommit)
 				dependencyPath.IdentifyType()
 			}
@@ -76,6 +80,10 @@ func (cfg *Config) ResolveDependencies(routes map[string]*YamlData, dependencies
 		yamlFile, err := cfg.readDataWithProfile(dependencyPath)
 		if err != nil {
 			return nil, &errors.YamllError{Message: fmt.Sprintf("reading YAML file errored with: '%v'", err)}
+		}
+
+		if err = validateLockedDependency(lockEntries, originalSource, yamlFile); err != nil {
+			return nil, err
 		}
 
 		cfg.log.Debug("the absolute path of the file which was read", slog.String("path", yamlFile.Name))
@@ -91,7 +99,7 @@ func (cfg *Config) ResolveDependencies(routes map[string]*YamlData, dependencies
 
 		sourceFiles := yamlFile.Source
 		if len(sourceFiles) == 0 {
-			sourceFiles = []File{{Name: yamlFile.Name, Data: yamlFile.Data}}
+			sourceFiles = []File{{Name: yamlFile.Name, Data: yamlFile.Data, Meta: yamlFile.Meta}}
 		}
 
 		routes[dependencyPath.Path] = &YamlData{
@@ -116,6 +124,58 @@ func (cfg *Config) ResolveDependencies(routes map[string]*YamlData, dependencies
 	}
 
 	return routes, nil
+}
+
+func validateLockedDependency(lockEntries map[string]LockEntry, source string, file File) error {
+	if len(lockEntries) == 0 {
+		return nil
+	}
+
+	if len(file.Source) == 0 {
+		return validateSingleLockedFile(lockEntries, source, "", file)
+	}
+
+	for _, sourceFile := range file.Source {
+		if err := validateSingleLockedFile(lockEntries, source, sourceFile.Name, sourceFile); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func validateSingleLockedFile(lockEntries map[string]LockEntry, source, patternFile string, file File) error {
+	entry, ok := lockEntries[lockEntryKey(source, patternFile)]
+	if !ok {
+		return &errors.YamllError{Message: fmt.Sprintf("dependency %s is not present in the lock file", source)}
+	}
+
+	actual := file.Meta.SHA256
+	if actual == "" {
+		actual = checksumForContent(file.Data)
+	}
+
+	if entry.SHA256 != "" && entry.SHA256 != actual {
+		if patternFile == "" {
+			return &errors.YamllError{Message: fmt.Sprintf(
+				"dependency %s changed since the lock file was generated: expected sha256 %s, got %s",
+				source, entry.SHA256, actual,
+			)}
+		}
+
+		return &errors.YamllError{Message: fmt.Sprintf(
+			"pattern dependency %s file %s changed since the lock file was generated: expected sha256 %s, got %s",
+			source, patternFile, entry.SHA256, actual,
+		)}
+	}
+
+	return nil
+}
+
+func checksumForContent(content string) string {
+	sum := sha256.Sum256([]byte(content))
+
+	return hex.EncodeToString(sum[:])
 }
 
 func (cfg *Config) readDataWithProfile(dependencyPath *Dependency) (File, error) {

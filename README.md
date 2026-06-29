@@ -357,7 +357,7 @@ origin: internal/fixtures/base5.yaml:2
 
 ### Lock File
 
-Remote imports are powerful, but drift. `yamll lock` pins resolved commits and checksums so future runs stay reproducible.
+Remote imports are powerful, but drift. `yamll lock` records resolved commits and checksums, and future runs fail if the fetched content no longer matches the lock.
 
 More details: [LOCKFILE.md](docs/LOCKFILE.md)
 

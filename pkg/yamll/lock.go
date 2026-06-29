@@ -34,6 +34,13 @@ type LockEntry struct {
 func (cfg *Config) Lock() ([]byte, error) {
 	cfg.Root = false
 
+	previousNoLock := cfg.NoLock
+	cfg.NoLock = true
+
+	defer func() {
+		cfg.NoLock = previousNoLock
+	}()
+
 	routes, err := cfg.ResolveDependencies(make(map[string]*YamlData), cfg.Files...)
 	if err != nil {
 		return nil, &errors.YamllError{Message: fmt.Sprintf("fetching dependency tree errored with: '%v'", err)}
@@ -136,4 +143,12 @@ func gitConstraintFromSource(source string) string {
 	ref, _, _ := strings.Cut(afterAt, "?")
 
 	return ref
+}
+
+func lockEntryKey(source, patternFile string) string {
+	if patternFile == "" {
+		return source
+	}
+
+	return source + "\x00" + patternFile
 }
