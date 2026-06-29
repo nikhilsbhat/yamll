@@ -41,10 +41,10 @@ type YamlRoutes map[string]*YamlData
 // Yaml is a string representation of YAML content.
 type Yaml string
 
-// Yaml identifies the YAML imports and merges them to create a single comprehensive YAML file.
+// Yaml resolves shared YAML imports into one coherent output, while preserving where each piece came from.
 // These imports work in a manner similar to importing libraries in a programming language.
 // It searches for the imports defined in any of the following (comments that start with ##++ in your YAML definition).
-// Supports importing from various sources including local files, URLs, and Git.
+// Supports importing from various sources including local files, URLs, Git, and OCI artifacts.
 // Sample imports look like:
 //
 //	##++internal/fixtures/base2.yaml
@@ -52,9 +52,10 @@ type Yaml string
 //	##++git+https://github.com/nikhilsbhat/yamll@main?path=internal/fixtures/base.yaml
 //	##++git+ssh://git@github.com:nikhilsbhat/yamll@main?path=internal/fixtures/base.yaml
 //	##++git+ssh://git@github.com:nikhilsbhat/yamll@v0.2.5?path=internal/fixtures/base.yaml
+//	##++oci://ghcr.io/company/platform-config:v1
 //	##++https://test.com/test.yaml;{"user_name":"${username}","password":"${pass}","ca_content":"${ca_content}"}
 //
-// The parameters necessary for authenticating the remote server in URL/GIT based imports should be defined as shown in the example above.
+// The parameters necessary for authenticating the remote server in URL/GIT/OCI based imports should be defined as shown in the example above.
 // All supported parameters can found under Auth.
 //
 // Authentication parameters, which cannot be directly specified in imports for security reasons, can be replaced with environment variables.
@@ -63,6 +64,7 @@ type Yaml string
 // Breakdown of git repo based import:
 // http based url: ##++git+https://github.com/<org_name>/<repo_name>@<branch/tag>?path=<path/to/file.yaml> ex: ##++git+https://github.com/nikhilsbhat/yamll@main?path=internal/fixtures/base.yaml.
 // ssh based url ##++git+ssh://git@github.com:<org_name>/<repo_name>@<branch/tag>?path=<path/to/file.yaml> ex: ##++git+ssh://git@github.com:nikhilsbhat/yamll@main?path=internal/fixtures/base.yaml.
+// OCI based url: ##++oci://ghcr.io/<org_name>/<artifact>:<tag> ex: ##++oci://ghcr.io/company/platform-config:v1.
 //
 //nolint:lll
 func (cfg *Config) Yaml() (Yaml, error) {

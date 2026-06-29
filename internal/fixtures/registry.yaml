@@ -1,4 +1,7 @@
-editor: &editor
-  editor:
-    - intellij
-    - visual_code
+registry: &registry
+  registry:
+    - artifactory
+    - harbour
+    - oracle
+    - aws
+    - gcp

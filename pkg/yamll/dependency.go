@@ -17,6 +17,7 @@ import (
 const (
 	TypeURL               = "http"
 	TypeGit               = "git+"
+	TypeOCI               = "oci://"
 	TypeFile              = "file"
 	TypeFilePattern       = "pattern"
 	defaultDirPermissions = 0o755
@@ -254,6 +255,8 @@ func (dependency *Dependency) ReadData(effective bool, log *slog.Logger) (File, 
 		return dependency.URL(log)
 	case TypeGit:
 		return dependency.Git(log)
+	case TypeOCI:
+		return dependency.OCI(log)
 	case TypeFile:
 		return dependency.File(log)
 	case TypeFilePattern:
@@ -306,6 +309,8 @@ func (dependency *Dependency) IdentifyType() {
 	switch {
 	case isPattern(dependency.Path):
 		dependency.Type = TypeFilePattern
+	case strings.HasPrefix(dependency.Path, TypeOCI):
+		dependency.Type = TypeOCI
 	case strings.HasPrefix(dependency.Path, TypeURL):
 		dependency.Type = TypeURL
 	case strings.HasPrefix(dependency.Path, TypeGit):
