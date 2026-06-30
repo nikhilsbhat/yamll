@@ -33,6 +33,18 @@ Use a non-default lock file path:
 yamll import -f path/to/root.yaml --lock-file /path/to/yamll.lock
 ```
 
+Verify the lock without rendering output:
+
+```sh
+yamll lock verify -f path/to/root.yaml
+```
+
+Explain why a dependency is present:
+
+```sh
+yamll lock explain common/base.yaml -f app.yaml -f jobs.yaml
+```
+
 ## What Gets Locked
 
 `yamll lock` resolves the full dependency graph starting from the root file(s) provided via `-f/--file`.
@@ -59,6 +71,12 @@ This ensures the same content is fetched even if `v1.2.3` is a moving tag or a b
 After resolution, `yamll` compares the fetched checksum against the lock entry. If the content changed, the command fails and tells you to regenerate the lock file.
 
 If no lock file is found (or `--no-lock` is set), `yamll` behaves as it did previously.
+
+## Lock Commands
+
+`yamll lock verify` resolves the selected roots and fails if any resolved content no longer matches `yamll.lock`.
+
+`yamll lock explain <dependency>` resolves each selected root independently and prints the roots that pull in the requested dependency. This keeps the lock file flat while still making root-to-dependency relationships inspectable when needed.
 
 ## Import Shorthand
 

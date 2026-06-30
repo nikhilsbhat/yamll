@@ -322,10 +322,12 @@ func parseTraceTarget(target string) (string, string) {
 
 func getLockCommand() *cobra.Command {
 	lockCommand := &cobra.Command{
-		Use:     "lock [flags]",
-		Short:   "Generates a lock file for reproducible remote imports",
-		Long:    "Resolves remote imports and writes a lock file containing resolved commits and checksums.",
-		Example: "yamll lock -f path/to/root.yaml",
+		Use:   "lock [flags]",
+		Short: "Generates a lock file for reproducible remote imports",
+		Long:  "Resolves remote imports and writes a lock file containing resolved commits and checksums.",
+		Example: `yamll lock -f path/to/root.yaml
+yamll lock verify -f path/to/root.yaml
+yamll lock explain common/base.yaml -f path/to/root.yaml`,
 		PreRunE: setCLIClient,
 		RunE: func(_ *cobra.Command, _ []string) error {
 			cfg := yamll.New(false, yamllCfg.LogLevel, yamllCfg.Limiter, cliCfg.Files...)
@@ -342,9 +344,9 @@ func getLockCommand() *cobra.Command {
 				os.Exit(1)
 			}
 
-			lockPath := "yamll.lock"
-			if cliCfg.ToFile != "" {
-				lockPath = cliCfg.ToFile
+			lockPath := cliCfg.LockFile
+			if lockPath == "" {
+				lockPath = "yamll.lock"
 			}
 
 			const readPermission = 0o600
@@ -359,8 +361,68 @@ func getLockCommand() *cobra.Command {
 
 	lockCommand.SilenceErrors = true
 	registerCommonFlags(lockCommand)
+	lockCommand.AddCommand(getLockVerifyCommand(), getLockExplainCommand())
 
 	return lockCommand
+}
+
+func getLockVerifyCommand() *cobra.Command {
+	return &cobra.Command{
+		Use:     "verify [flags]",
+		Short:   "Verifies that resolved imports match the lock file",
+		Long:    "Resolves the selected roots and verifies that every locked dependency still matches its recorded checksum.",
+		Example: "yamll lock verify -f path/to/root.yaml",
+		PreRunE: setCLIClient,
+		RunE: func(_ *cobra.Command, _ []string) error {
+			cfg := yamll.New(false, yamllCfg.LogLevel, yamllCfg.Limiter, cliCfg.Files...)
+			cfg.SetLogger()
+			logger = cfg.GetLogger()
+			cfg.LockFile = cliCfg.LockFile
+			cfg.NoLock = cliCfg.NoLock
+
+			report, err := cfg.LockVerify()
+			if err != nil {
+				logger.Error("lock verification failed", slog.Any("err", err))
+				os.Exit(1)
+			}
+
+			if _, err = writer.Write([]byte(report.String())); err != nil {
+				return err
+			}
+
+			return nil
+		},
+	}
+}
+
+func getLockExplainCommand() *cobra.Command {
+	return &cobra.Command{
+		Use:     "explain <dependency> [flags]",
+		Short:   "Explains which roots pull in a dependency",
+		Long:    "Resolves each selected root and shows which roots depend on the requested dependency source.",
+		Example: "yamll lock explain common/base.yaml -f app.yaml -f jobs.yaml",
+		Args:    cobra.ExactArgs(1),
+		PreRunE: setCLIClient,
+		RunE: func(_ *cobra.Command, args []string) error {
+			cfg := yamll.New(false, yamllCfg.LogLevel, yamllCfg.Limiter, cliCfg.Files...)
+			cfg.SetLogger()
+			logger = cfg.GetLogger()
+			cfg.LockFile = cliCfg.LockFile
+			cfg.NoLock = cliCfg.NoLock
+
+			report, err := cfg.LockExplain(args[0])
+			if err != nil {
+				logger.Error("lock explain failed", slog.Any("err", err))
+				os.Exit(1)
+			}
+
+			if _, err = writer.Write([]byte(report.String())); err != nil {
+				return err
+			}
+
+			return nil
+		},
+	}
 }
 
 func getLintCommand() *cobra.Command {

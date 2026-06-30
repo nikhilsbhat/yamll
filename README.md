@@ -369,6 +369,18 @@ yamll import -f internal/fixtures/import.yaml
 yamll build -f internal/fixtures/import.yaml
 ```
 
+To verify the lock without rendering output:
+
+```sh
+yamll lock verify -f internal/fixtures/import.yaml
+```
+
+To explain which roots pull in a dependency:
+
+```sh
+yamll lock explain internal/fixtures/base.yaml -f app.yaml -f jobs.yaml
+```
+
 To ignore the lock file for a run:
 
 ```sh
