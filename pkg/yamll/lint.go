@@ -310,7 +310,7 @@ func lintDuplicateKeys(routes YamlRoutes) []LintIssue {
 			sanitized := aliasRefPattern.ReplaceAllString(src.Data, `${1}"__yamll_lint_alias_${2}"`)
 
 			var out yaml.MapSlice
-			if err := yaml.UnmarshalWithOptions([]byte(sanitized), &out, yaml.UseOrderedMap(), yaml.DisallowDuplicateKey(), yaml.Strict()); err != nil {
+			if err := yaml.UnmarshalWithOptions([]byte(sanitized), &out, yaml.UseOrderedMap(), yaml.Strict()); err != nil {
 				msg := err.Error()
 				if strings.Contains(strings.ToLower(msg), "duplicate") && strings.Contains(strings.ToLower(msg), "key") {
 					issues = append(issues, LintIssue{
