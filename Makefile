@@ -12,6 +12,7 @@ DATE?=$(shell date)
 PlATFORM?=$(shell go env GOOS)
 ARCHITECTURE?=$(shell go env GOARCH)
 GOVERSION?=$(shell go version | awk '{printf $$3}')
+DOCKER_HOST?=$(shell docker context inspect --format '{{.Endpoints.docker.Host}}' 2>/dev/null)
 BUILD_WITH_FLAGS="-s -w -X 'github.com/nikhilsbhat/yamll/version.Version=${VERSION}' -X 'github.com/nikhilsbhat/yamll/version.Env=${BUILD_ENVIRONMENT}' -X 'github.com/nikhilsbhat/yamll/version.BuildDate=${DATE}' -X 'github.com/nikhilsbhat/yamll/version.Revision=${REVISION}' -X 'github.com/nikhilsbhat/yamll/version.Platform=${PlATFORM}/${ARCHITECTURE}' -X 'github.com/nikhilsbhat/yamll/version.GoVersion=${GOVERSION}'"
 
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
@@ -50,7 +51,7 @@ publish: local/check ## Builds and publishes the app
 	GOVERSION=${GOVERSION} BUILD_ENVIRONMENT=${BUILD_ENVIRONMENT} PLUGIN_PATH=${APP_DIR} goreleaser release --clean
 
 mock/publish: local/check ## Builds and mocks app release
-	GOVERSION=${GOVERSION} BUILD_ENVIRONMENT=${BUILD_ENVIRONMENT} PLUGIN_PATH=${APP_DIR} goreleaser release --skip=publish --clean --snapshot
+	DOCKER_HOST=${DOCKER_HOST} GOVERSION=${GOVERSION} BUILD_ENVIRONMENT=${BUILD_ENVIRONMENT} PLUGIN_PATH=${APP_DIR} goreleaser release --skip=publish,sign --clean --snapshot
 
 lint: ## Lint's application for errors, it is a linters aggregator (https://github.com/golangci/golangci-lint).
 	if [ -z "${DEV}" ]; then golangci-lint run --color always ; else docker run --rm -v $(APP_DIR):/app -w /app golangci/golangci-lint:v1.46.2-alpine golangci-lint run --color always ; fi

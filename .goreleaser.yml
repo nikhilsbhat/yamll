@@ -6,18 +6,19 @@ before:
     - go mod tidy
 
 builds:
-  - env:
+  - id: yamll
+    env:
       - CGO_ENABLED=0
     flags:
       - -trimpath
     ldflags:
       - -s -w
-        -X github.com/nikhilsbhat/yamll/version.Version={{.Version}}
-        -X github.com/nikhilsbhat/yamll/version.Env={{.Env.BUILD_ENVIRONMENT}}
-        -X github.com/nikhilsbhat/yamll/version.BuildDate={{.Date}}
-        -X github.com/nikhilsbhat/yamll/version.Revision={{.Commit}}
-        -X github.com/nikhilsbhat/yamll/version.GoVersion={{.Env.GOVERSION}}
-        -X github.com/nikhilsbhat/yamll/version.Platform={{ .Os }}/{{ .Arch }}
+        -X github.com/nikhilsbhat/yamll/cmd.Version={{.Version}}
+        -X github.com/nikhilsbhat/yamll/cmd.Env={{.Env.BUILD_ENVIRONMENT}}
+        -X github.com/nikhilsbhat/yamll/cmd.BuildDate={{.Date}}
+        -X github.com/nikhilsbhat/yamll/cmd.Revision={{.Commit}}
+        -X github.com/nikhilsbhat/yamll/cmd.GoVersion={{.Env.GOVERSION}}
+        -X github.com/nikhilsbhat/yamll/cmd.Platform={{ .Os }}/{{ .Arch }}
     goos:
       - freebsd
       - windows
@@ -28,22 +29,31 @@ builds:
       - '386'
       - arm
       - arm64
+    ignore:
+      - goos: windows
+        goarch: arm
     binary: '{{ .ProjectName }}'
 
 dockers:
-  - goos: linux
-    goarch: amd64
+  - id: yamll
     ids:
       - yamll
-    skip_push: false
-    image_templates:
-      - "ghcr.io/nikhilsbhat/yamll:latest"
-      - "ghcr.io/nikhilsbhat/yamll:{{ .Tag }}"
-      - "ghcr.io/nikhilsbhat/yamll:{{ .Tag }}-{{ .Env.GOVERSION }}"
     dockerfile: Dockerfile
+    use: buildx
+    skip_push: true
+    extra_files:
+      - dist/yamll_linux_amd64_v1/yamll
+      - dist/yamll_linux_arm64_v8.0/yamll
+    image_templates:
+      - "ghcr.io/nikhilsbhat/yamll:{{ .Tag }}"
+      - "ghcr.io/nikhilsbhat/yamll:latest"
+    build_flag_templates:
+      - "--platform=linux/amd64,linux/arm64"
+      - "{{ if .IsSnapshot }}--load{{ else }}--push{{ end }}"
 
 archives:
-  - format: 'tar.gz'
+  - formats:
+      - tar.gz
     name_template: >-
       {{- .ProjectName }}_
       {{- .Version }}_
@@ -56,7 +66,7 @@ brews:
   - name: yamll
     homepage: https://github.com/nikhilsbhat/yamll
     url_template: "https://github.com/nikhilsbhat/yamll/releases/download/{{ .Tag }}/{{ .ArtifactName }}"
-    description: "A utility that allows importing YAML files as libraries, similar to how programming languages manage dependencies"
+    description: "YAML dependency manager for importing, merging, tracing, linting, and locking shared config files."
     license: "MIT"
     directory: Formula
     commit_msg_template: "Add brew formula for {{ .ProjectName }} latest"
@@ -77,7 +87,7 @@ brews:
   - name: '{{ .ProjectName }}@{{ .Version }}'
     homepage: https://github.com/nikhilsbhat/yamll
     url_template: "https://github.com/nikhilsbhat/yamll/releases/download/{{ .Tag }}/{{ .ArtifactName }}"
-    description: "A utility that allows importing YAML files as libraries, similar to how programming languages manage dependencies"
+    description: "YAML dependency manager for importing, merging, tracing, linting, and locking shared config files."
     license: "MIT"
     directory: Formula
     commit_msg_template: "Add brew formula for {{ .ProjectName }} version {{ .Tag }}"
@@ -97,7 +107,7 @@ brews:
           branch: main
 
 snapshot:
-  name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Runtime.Goos }}_{{ .Runtime.Goarch }}"
+  version_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Runtime.Goos }}_{{ .Runtime.Goarch }}"
 
 checksum:
   name_template: '{{ .ProjectName }}_{{ .Version }}_SHA256SUMS'

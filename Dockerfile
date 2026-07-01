@@ -1,7 +1,9 @@
 ### Description: Dockerfile for yamll
-FROM alpine:3.20.2
+FROM alpine:3.23
 
-COPY yamll /
+ARG TARGETARCH
+
+COPY dist/yamll_linux_${TARGETARCH}_*/yamll /
 
 # Starting
 ENTRYPOINT [ "/yamll" ]
