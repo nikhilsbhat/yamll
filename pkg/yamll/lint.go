@@ -7,7 +7,6 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/goccy/go-yaml"
 	yamllerrors "github.com/nikhilsbhat/yamll/pkg/errors"
 	yamlv3 "gopkg.in/yaml.v3"
 )
@@ -16,13 +15,26 @@ type LintReport struct {
 	Issues []LintIssue
 }
 
+func (report LintReport) HasErrors() bool {
+	for _, issue := range report.Issues {
+		if issueSeverity(issue) == LintSeverityError {
+			return true
+		}
+	}
+
+	return false
+}
+
 type LintIssue struct {
-	Code    string
-	File    string
-	Message string
+	Severity string
+	Code     string
+	File     string
+	Message  string
 }
 
 const (
+	LintSeverityError         = "error"
+	LintSeverityWarning       = "warning"
 	LintDuplicateKeys         = "duplicate-keys"
 	LintUnresolvedImports     = "unresolved-imports"
 	LintUnusedImports         = "unused-imports"
@@ -38,20 +50,13 @@ const (
 func (cfg *Config) Lint() (LintReport, error) {
 	cfg.Root = false
 
-	routes, unresolvedImportMessage := func() (map[string]*YamlData, string) {
-		resolvedRoutes, err := cfg.ResolveDependencies(make(map[string]*YamlData), cfg.Files...)
-		if err != nil {
-			return nil, err.Error()
-		}
-
-		return resolvedRoutes, ""
-	}()
-
+	routes, unresolvedImportMessage := cfg.resolveLintRoutes()
 	if unresolvedImportMessage != "" {
 		return LintReport{
 			Issues: []LintIssue{{
-				Code:    LintUnresolvedImports,
-				Message: unresolvedImportMessage,
+				Severity: LintSeverityError,
+				Code:     LintUnresolvedImports,
+				Message:  unresolvedImportMessage,
 			}},
 		}, nil
 	}
@@ -67,15 +72,21 @@ func (cfg *Config) Lint() (LintReport, error) {
 
 	anchorDefs := collectAnchorDefs(yamlRoutes)
 	anchorRefs := collectAnchorRefs(yamlRoutes)
+	keyPathsByFile := collectRouteKeyPathsByFile(yamlRoutes)
+	rootKeyPaths := collectRootKeyPaths(yamlRoutes, keyPathsByFile)
 
 	issues = append(issues, lintInvalidAnchors(anchorDefs, anchorRefs)...)
 	issues = append(issues, lintUnusedImports(yamlRoutes, anchorDefs, anchorRefs)...)
 	issues = append(issues, lintConflictingMerges(yamlRoutes)...)
-	issues = append(issues, lintDeadImports(yamlRoutes, anchorDefs)...)
-	issues = append(issues, lintOverriddenImports(yamlRoutes)...)
+	issues = append(issues, lintDeadImports(yamlRoutes, anchorDefs, rootKeyPaths, keyPathsByFile)...)
+	issues = append(issues, lintOverriddenImports(yamlRoutes, rootKeyPaths, keyPathsByFile)...)
 	issues = append(issues, lintDuplicateLibraries(yamlRoutes)...)
 
 	sort.SliceStable(issues, func(index, jIndex int) bool {
+		if issues[index].Severity != issues[jIndex].Severity {
+			return issues[index].Severity < issues[jIndex].Severity
+		}
+
 		if issues[index].Code != issues[jIndex].Code {
 			return issues[index].Code < issues[jIndex].Code
 		}
@@ -90,6 +101,23 @@ func (cfg *Config) Lint() (LintReport, error) {
 	return LintReport{Issues: issues}, nil
 }
 
+func (cfg *Config) resolveLintRoutes() (map[string]*YamlData, string) {
+	routes, err := cfg.ResolveDependencies(make(map[string]*YamlData), cfg.Files...)
+	if err != nil {
+		return nil, err.Error()
+	}
+
+	return routes, ""
+}
+
+func issueSeverity(issue LintIssue) string {
+	if issue.Severity == "" {
+		return LintSeverityError
+	}
+
+	return issue.Severity
+}
+
 func lintCircularRefs(routes YamlRoutes) []LintIssue {
 	issues := make([]LintIssue, 0)
 
@@ -102,9 +130,10 @@ func lintCircularRefs(routes YamlRoutes) []LintIssue {
 		if _, exists := visiting[file]; exists {
 			// cycle
 			issues = append(issues, LintIssue{
-				Code:    LintCircularRefs,
-				File:    file,
-				Message: fmt.Sprintf("import cycle detected: %s -> %s", strings.Join(stack, " -> "), file),
+				Severity: LintSeverityError,
+				Code:     LintCircularRefs,
+				File:     file,
+				Message:  fmt.Sprintf("import cycle detected: %s -> %s", strings.Join(stack, " -> "), file),
 			})
 
 			return
@@ -219,9 +248,10 @@ func lintInvalidAnchors(defs map[string]map[string]struct{}, refs map[string]map
 
 		for file := range files {
 			issues = append(issues, LintIssue{
-				Code:    LintInvalidAnchors,
-				File:    file,
-				Message: fmt.Sprintf("unknown anchor reference '*%s'", refName),
+				Severity: LintSeverityError,
+				Code:     LintInvalidAnchors,
+				File:     file,
+				Message:  fmt.Sprintf("unknown anchor reference '*%s'", refName),
 			})
 		}
 	}
@@ -286,9 +316,10 @@ func lintUnusedImports(routes YamlRoutes, defs map[string]map[string]struct{}, r
 
 		if !used {
 			issues = append(issues, LintIssue{
-				Code:    LintUnusedImports,
-				File:    route.File,
-				Message: "imported file appears unused (no anchors referenced)",
+				Severity: LintSeverityWarning,
+				Code:     LintUnusedImports,
+				File:     route.File,
+				Message:  "imported file appears unused (no anchors referenced)",
 			})
 		}
 	}
@@ -297,7 +328,7 @@ func lintUnusedImports(routes YamlRoutes, defs map[string]map[string]struct{}, r
 }
 
 func lintDuplicateKeys(routes YamlRoutes) []LintIssue {
-	issues := make([]LintIssue, 0)
+	issues := make([]LintIssue, 0, len(routes))
 
 	for _, file := range routes.OrderedFiles() {
 		route := routes[file]
@@ -309,21 +340,57 @@ func lintDuplicateKeys(routes YamlRoutes) []LintIssue {
 			// Replace *alias with a scalar so strict parsing doesn't fail due to cross-file anchors.
 			sanitized := aliasRefPattern.ReplaceAllString(src.Data, `${1}"__yamll_lint_alias_${2}"`)
 
-			var out yaml.MapSlice
-			if err := yaml.UnmarshalWithOptions([]byte(sanitized), &out, yaml.UseOrderedMap(), yaml.Strict()); err != nil {
-				msg := err.Error()
-				if strings.Contains(strings.ToLower(msg), "duplicate") && strings.Contains(strings.ToLower(msg), "key") {
-					issues = append(issues, LintIssue{
-						Code:    LintDuplicateKeys,
-						File:    src.Name,
-						Message: msg,
-					})
-				}
+			var node yamlv3.Node
+			if err := yamlv3.Unmarshal([]byte(sanitized), &node); err != nil {
+				continue
 			}
+
+			lintDuplicateKeysInNode(src.Name, &node, &issues)
 		}
 	}
 
 	return issues
+}
+
+func lintDuplicateKeysInNode(file string, node *yamlv3.Node, issues *[]LintIssue) {
+	if node == nil {
+		return
+	}
+
+	if node.Kind == yamlv3.MappingNode {
+		seen := make(map[string]int)
+
+		for index := 0; index < len(node.Content)-1; index += 2 {
+			keyNode := node.Content[index]
+			valueNode := node.Content[index+1]
+			key := keyNode.Value
+
+			if key == "<<" {
+				lintDuplicateKeysInNode(file, valueNode, issues)
+
+				continue
+			}
+
+			if firstLine, exists := seen[key]; exists {
+				*issues = append(*issues, LintIssue{
+					Severity: LintSeverityError,
+					Code:     LintDuplicateKeys,
+					File:     file,
+					Message:  fmt.Sprintf("duplicate key %q at line %d; first defined at line %d", key, keyNode.Line, firstLine),
+				})
+			} else {
+				seen[key] = keyNode.Line
+			}
+
+			lintDuplicateKeysInNode(file, valueNode, issues)
+		}
+
+		return
+	}
+
+	for _, child := range node.Content {
+		lintDuplicateKeysInNode(file, child, issues)
+	}
 }
 
 func lintConflictingMerges(routes YamlRoutes) []LintIssue {
@@ -334,8 +401,9 @@ func lintConflictingMerges(routes YamlRoutes) []LintIssue {
 	anchorKinds, err := collectAnchorKinds(anchorRefData)
 	if err != nil {
 		return []LintIssue{{
-			Code:    LintConflictingMerges,
-			Message: err.Error(),
+			Severity: LintSeverityError,
+			Code:     LintConflictingMerges,
+			Message:  err.Error(),
 		}}
 	}
 
@@ -351,15 +419,17 @@ func lintConflictingMerges(routes YamlRoutes) []LintIssue {
 
 				if ok := stdErrors.As(err, &yerr); ok {
 					issues = append(issues, LintIssue{
-						Code:    LintConflictingMerges,
-						File:    src.Name,
-						Message: yerr.Message,
+						Severity: LintSeverityError,
+						Code:     LintConflictingMerges,
+						File:     src.Name,
+						Message:  yerr.Message,
 					})
 				} else {
 					issues = append(issues, LintIssue{
-						Code:    LintConflictingMerges,
-						File:    src.Name,
-						Message: err.Error(),
+						Severity: LintSeverityError,
+						Code:     LintConflictingMerges,
+						File:     src.Name,
+						Message:  err.Error(),
 					})
 				}
 			}
@@ -369,9 +439,13 @@ func lintConflictingMerges(routes YamlRoutes) []LintIssue {
 	return issues
 }
 
-func lintDeadImports(routes YamlRoutes, defs map[string]map[string]struct{}) []LintIssue {
+func lintDeadImports(
+	routes YamlRoutes,
+	defs map[string]map[string]struct{},
+	rootKeyPaths map[string]map[string]struct{},
+	keyPathsByFile map[string]map[string]struct{},
+) []LintIssue {
 	issues := make([]LintIssue, 0)
-	rootKeyPaths := collectRootKeyPaths(routes)
 
 	for _, file := range routes.OrderedFiles() {
 		route := routes[file]
@@ -379,12 +453,13 @@ func lintDeadImports(routes YamlRoutes, defs map[string]map[string]struct{}) []L
 			continue
 		}
 
-		keyPaths := collectRouteKeyPaths(route)
+		keyPaths := keyPathsByFile[route.File]
 		if len(keyPaths) == 0 {
 			issues = append(issues, LintIssue{
-				Code:    LintDeadImports,
-				File:    route.File,
-				Message: fmt.Sprintf("%s imported but contributes nothing", route.File),
+				Severity: LintSeverityWarning,
+				Code:     LintDeadImports,
+				File:     route.File,
+				Message:  fmt.Sprintf("%s imported but contributes nothing", route.File),
 			})
 
 			continue
@@ -392,9 +467,10 @@ func lintDeadImports(routes YamlRoutes, defs map[string]map[string]struct{}) []L
 
 		if allKeysOverridden(keyPaths, rootKeyPaths) && len(defs) == 0 {
 			issues = append(issues, LintIssue{
-				Code:    LintDeadImports,
-				File:    route.File,
-				Message: fmt.Sprintf("%s imported but contributes nothing", route.File),
+				Severity: LintSeverityWarning,
+				Code:     LintDeadImports,
+				File:     route.File,
+				Message:  fmt.Sprintf("%s imported but contributes nothing", route.File),
 			})
 		}
 	}
@@ -402,9 +478,12 @@ func lintDeadImports(routes YamlRoutes, defs map[string]map[string]struct{}) []L
 	return issues
 }
 
-func lintOverriddenImports(routes YamlRoutes) []LintIssue {
+func lintOverriddenImports(
+	routes YamlRoutes,
+	rootKeyPaths map[string]map[string]struct{},
+	keyPathsByFile map[string]map[string]struct{},
+) []LintIssue {
 	issues := make([]LintIssue, 0)
-	rootKeyPaths := collectRootKeyPaths(routes)
 
 	for _, file := range routes.OrderedFiles() {
 		route := routes[file]
@@ -412,7 +491,7 @@ func lintOverriddenImports(routes YamlRoutes) []LintIssue {
 			continue
 		}
 
-		keyPaths := collectRouteKeyPaths(route)
+		keyPaths := keyPathsByFile[route.File]
 		overridden := make([]string, 0)
 
 		for keyPath := range keyPaths {
@@ -427,9 +506,10 @@ func lintOverriddenImports(routes YamlRoutes) []LintIssue {
 
 		sort.Strings(overridden)
 		issues = append(issues, LintIssue{
-			Code:    LintOverriddenImports,
-			File:    route.File,
-			Message: fmt.Sprintf("%s overridden in every environment: %s", route.File, strings.Join(overridden, ", ")),
+			Severity: LintSeverityWarning,
+			Code:     LintOverriddenImports,
+			File:     route.File,
+			Message:  fmt.Sprintf("%s overridden in every environment: %s", route.File, strings.Join(overridden, ", ")),
 		})
 	}
 
@@ -463,16 +543,17 @@ func lintDuplicateLibraries(routes YamlRoutes) []LintIssue {
 
 		sort.Strings(sources)
 		issues = append(issues, LintIssue{
-			Code:    LintDuplicateLibraries,
-			File:    strings.Join(sources, ", "),
-			Message: fmt.Sprintf("same content imported from multiple locations (sha256=%s)", hash),
+			Severity: LintSeverityWarning,
+			Code:     LintDuplicateLibraries,
+			File:     strings.Join(sources, ", "),
+			Message:  fmt.Sprintf("same content imported from multiple locations (sha256=%s)", hash),
 		})
 	}
 
 	return issues
 }
 
-func collectRootKeyPaths(routes YamlRoutes) map[string]map[string]struct{} {
+func collectRootKeyPaths(routes YamlRoutes, keyPathsByFile map[string]map[string]struct{}) map[string]map[string]struct{} {
 	roots := make(map[string]map[string]struct{})
 
 	for _, file := range routes.OrderedFiles() {
@@ -481,10 +562,25 @@ func collectRootKeyPaths(routes YamlRoutes) map[string]map[string]struct{} {
 			continue
 		}
 
-		roots[route.File] = collectRouteKeyPaths(route)
+		roots[route.File] = keyPathsByFile[route.File]
 	}
 
 	return roots
+}
+
+func collectRouteKeyPathsByFile(routes YamlRoutes) map[string]map[string]struct{} {
+	keyPaths := make(map[string]map[string]struct{}, len(routes))
+
+	for _, file := range routes.OrderedFiles() {
+		route := routes[file]
+		if route == nil {
+			continue
+		}
+
+		keyPaths[route.File] = collectRouteKeyPaths(route)
+	}
+
+	return keyPaths
 }
 
 func collectRouteKeyPaths(route *YamlData) map[string]struct{} {

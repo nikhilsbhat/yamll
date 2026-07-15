@@ -277,6 +277,95 @@ func TestConfig_TraceFindsPatternFileOrigin(t *testing.T) {
 	require.Equal(t, displayTestPath(baseFile)+":2", origin.Origin)
 }
 
+func TestConfig_ExplainShowsMergedAndDirectResolution(t *testing.T) {
+	dir := t.TempDir()
+	rootFile := filepath.Join(dir, "root.yaml")
+	baseFile := filepath.Join(dir, "base.yaml")
+
+	require.NoError(t, os.WriteFile(rootFile, []byte(strings.Join([]string{
+		"##++" + baseFile,
+		"service:",
+		"  <<: *service_base",
+		"  name: api",
+		"",
+	}, "\n")), 0o600))
+	require.NoError(t, os.WriteFile(baseFile, []byte(strings.Join([]string{
+		"service_base: &service_base",
+		"  name: base-api",
+		"  metadata:",
+		"    labels:",
+		"      app: api",
+		"",
+	}, "\n")), 0o600))
+
+	cfg := yamll.New(false, "DEBUG", "---", rootFile)
+	cfg.SetLogger()
+
+	explain, err := cfg.Explain("service.name")
+	require.NoError(t, err)
+	require.Equal(t, "service.name", explain.Path)
+	require.Equal(t, "api", explain.FinalValue)
+	require.Equal(t, displayTestPath(rootFile)+":4", explain.FinalOrigin.Origin)
+	require.Len(t, explain.Steps, 2)
+	require.Equal(t, displayTestPath(baseFile)+":2", explain.Steps[0].Origin)
+	require.Equal(t, "merge", explain.Steps[0].Source)
+	require.Equal(t, "overridden", explain.Steps[0].Action)
+	require.Equal(t, "base-api", explain.Steps[0].Value)
+	require.Equal(t, displayTestPath(rootFile)+":4", explain.Steps[1].Origin)
+	require.Equal(t, "direct", explain.Steps[1].Source)
+	require.Equal(t, "selected", explain.Steps[1].Action)
+	require.Equal(t, "api", explain.Steps[1].Value)
+	require.Contains(t, explain.MergeRule, "direct keys override")
+	require.Equal(t, explain.RenderText(), explain.String())
+	require.Contains(t, explain.RenderText(), "final:")
+	require.Contains(t, explain.RenderText(), "resolution:")
+
+	jsonOut, err := explain.RenderJSON()
+	require.NoError(t, err)
+	require.Contains(t, string(jsonOut), `"final_value": "api"`)
+
+	yamlOut, err := explain.RenderYAML()
+	require.NoError(t, err)
+	require.Contains(t, string(yamlOut), "final_value: api")
+
+	mapExplain, err := cfg.Explain("service")
+	require.NoError(t, err)
+	require.Contains(t, mapExplain.FinalValue, "name: api")
+	require.Contains(t, mapExplain.FinalValue, "metadata:")
+	require.Contains(t, mapExplain.FinalValue, "app: api")
+	require.NotContains(t, mapExplain.FinalValue, "__yamll_trace_alias_")
+}
+
+func TestConfig_ExplainFindsPatternFileOrigin(t *testing.T) {
+	dir := t.TempDir()
+	rootFile := filepath.Join(dir, "root.yaml")
+	pattern := filepath.Join(dir, "*.test.yaml")
+	baseFile := filepath.Join(dir, "base.test.yaml")
+
+	require.NoError(t, os.WriteFile(rootFile, []byte(strings.Join([]string{
+		"##++" + pattern,
+		"base:",
+		"  <<: *base_test",
+		"",
+	}, "\n")), 0o600))
+	require.NoError(t, os.WriteFile(baseFile, []byte(strings.Join([]string{
+		"base_test: &base_test",
+		"  base_name: base_test",
+		"",
+	}, "\n")), 0o600))
+
+	cfg := yamll.New(false, "DEBUG", "---", rootFile)
+	cfg.SetLogger()
+
+	explain, err := cfg.Explain("base.base_name")
+	require.NoError(t, err)
+	require.Equal(t, "base_test", explain.FinalValue)
+	require.Equal(t, displayTestPath(baseFile)+":2", explain.FinalOrigin.Origin)
+	require.Len(t, explain.Steps, 1)
+	require.Equal(t, "merge", explain.Steps[0].Source)
+	require.Equal(t, "selected", explain.Steps[0].Action)
+}
+
 func displayTestPath(path string) string {
 	relPath, err := filepath.Rel(".", path)
 	if err != nil || strings.HasPrefix(relPath, "..") {

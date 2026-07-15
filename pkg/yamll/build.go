@@ -37,6 +37,7 @@ func (yamlRoutes YamlRoutes) Build() (Yaml, error) {
 		decodeOpts := []yaml.DecodeOption{
 			yaml.UseOrderedMap(),
 			yaml.Strict(),
+			yaml.AllowDuplicateMapKey(),
 			yaml.ReferenceReaders(strings.NewReader(anchorRefData)),
 		}
 

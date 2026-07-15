@@ -325,7 +325,7 @@ Total downstream dependencies: 17
 
 ### Lint
 
-Want a fast sanity check? `yamll lint` scans the graph for duplicate keys, unresolved imports, unused imports, circular refs, invalid anchors, and conflicting merges.
+Want a fast sanity check? `yamll lint` scans the graph for duplicate keys, unresolved imports, unused imports, circular refs, invalid anchors, conflicting merges, and dependency hygiene issues.
 
 **Example**:
 
@@ -333,7 +333,7 @@ Want a fast sanity check? `yamll lint` scans the graph for duplicate keys, unres
 yamll lint -f import.yaml
 ```
 
-If issues are found, `yamll` prints them and exits with a non-zero status.
+Output includes a severity, rule code, file, and message. Error-level issues exit non-zero; warning-level dependency advisories are printed without failing the command.
 
 ### Trace
 
@@ -353,6 +353,44 @@ yamll trace -f internal/fixtures/import.yaml workflow.dbname
 
 ```sh
 origin: internal/fixtures/base5.yaml:2
+```
+
+### Explain
+
+Need to know why a rendered value won?
+
+`yamll explain` shows the final value, its final origin, and the imported or merged values that were overridden along the way.
+
+**Example**:
+
+```sh
+yamll explain root.yaml:service.name
+yamll explain -f root.yaml service.name
+```
+
+**Output**:
+
+```text
+path: service.name
+
+final:
+  origin: root.yaml:4
+  value:
+    api
+
+resolution:
+  1. origin: base.yaml:2
+     source: merge
+     action: overridden
+     value:
+       base-api
+  2. origin: root.yaml:4
+     source: direct
+     action: selected
+     value:
+       api
+
+merge rule: direct keys override merged values; root content is evaluated after imported anchors
 ```
 
 ### Lock File

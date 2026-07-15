@@ -29,6 +29,7 @@ func TestConfig_Lint(t *testing.T) {
 
 		require.NotEmpty(t, report.Issues)
 		require.Contains(t, codes(report.Issues), yamll.LintUnusedImports)
+		require.Equal(t, yamll.LintSeverityWarning, report.Issues[0].Severity)
 	})
 
 	t.Run("reports invalid anchors", func(t *testing.T) {
@@ -43,6 +44,7 @@ func TestConfig_Lint(t *testing.T) {
 		report, err := cfg.Lint()
 		require.NoError(t, err)
 		require.Contains(t, codes(report.Issues), yamll.LintInvalidAnchors)
+		require.Equal(t, yamll.LintSeverityError, report.Issues[0].Severity)
 	})
 
 	t.Run("reports conflicting merges", func(t *testing.T) {
@@ -74,6 +76,24 @@ func TestConfig_Lint(t *testing.T) {
 		report, err := cfg.Lint()
 		require.NoError(t, err)
 		require.Contains(t, codes(report.Issues), yamll.LintDuplicateKeys)
+		require.Equal(t, yamll.LintSeverityError, report.Issues[0].Severity)
+	})
+
+	t.Run("does not report merge keys as duplicate keys", func(t *testing.T) {
+		dir := t.TempDir()
+
+		root := filepath.Join(dir, "root.yaml")
+		lib := filepath.Join(dir, "lib.yaml")
+
+		require.NoError(t, writeFile(root, "##++"+lib+"\n\nobj:\n  <<: *one\n  <<: *two\n"))
+		require.NoError(t, writeFile(lib, "one: &one\n  a: 1\ntwo: &two\n  b: 2\n"))
+
+		cfg := yamll.New(false, "INFO", "---", root)
+		cfg.SetLogger()
+
+		report, err := cfg.Lint()
+		require.NoError(t, err)
+		require.NotContains(t, codes(report.Issues), yamll.LintDuplicateKeys)
 	})
 
 	t.Run("reports circular refs", func(t *testing.T) {

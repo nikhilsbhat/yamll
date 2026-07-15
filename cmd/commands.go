@@ -120,6 +120,7 @@ func getBuildCommand() *cobra.Command {
 		PreRunE: setCLIClient,
 		RunE: func(_ *cobra.Command, _ []string) error {
 			cfg := yamll.New(yamllCfg.Merge, yamllCfg.LogLevel, yamllCfg.Limiter, cliCfg.Files...)
+
 			cfg.SetLogger()
 			logger = cfg.GetLogger()
 			cfg.LockFile = cliCfg.LockFile
@@ -202,6 +203,7 @@ yamll tree --file path/to/file.yaml --output=mermaid`,
 		PreRunE: setCLIClient,
 		RunE: func(_ *cobra.Command, _ []string) error {
 			cfg := yamll.New(yamllCfg.Merge, yamllCfg.LogLevel, yamllCfg.Limiter, cliCfg.Files...)
+
 			cfg.SetLogger()
 			logger = cfg.GetLogger()
 			cfg.LockFile = cliCfg.LockFile
@@ -245,6 +247,7 @@ yamll impact -f internal/fixtures/import.yaml internal/fixtures/base.yaml`,
 			}
 
 			cfg := yamll.New(false, yamllCfg.LogLevel, yamllCfg.Limiter, cliCfg.Files...)
+
 			cfg.SetLogger()
 			logger = cfg.GetLogger()
 			cfg.LockFile = cliCfg.LockFile
@@ -286,6 +289,7 @@ yamll trace --file internal/fixtures/import.yaml base.movies`,
 			}
 
 			cfg := yamll.New(false, yamllCfg.LogLevel, yamllCfg.Limiter, cliCfg.Files...)
+
 			cfg.SetLogger()
 			logger = cfg.GetLogger()
 			cfg.LockFile = cliCfg.LockFile
@@ -311,6 +315,48 @@ yamll trace --file internal/fixtures/import.yaml base.movies`,
 	return traceCommand
 }
 
+func getExplainCommand() *cobra.Command {
+	explainCommand := &cobra.Command{
+		Use:   "explain [flags] <file:path|path>",
+		Short: "Explains why a generated YAML path has its final value",
+		Long:  "Explains the final value of a generated YAML path, including its origin and any imported or merged values it overrides.",
+		Example: `yamll explain internal/fixtures/import.yaml:base.movies
+yamll explain --file internal/fixtures/import.yaml base.movies`,
+		Args:    cobra.ExactArgs(1),
+		PreRunE: setCLIClient,
+		RunE: func(_ *cobra.Command, args []string) error {
+			rootFile, explainPath := parseTraceTarget(args[0])
+			if rootFile != "" {
+				cliCfg.Files = []string{rootFile}
+			}
+
+			cfg := yamll.New(false, yamllCfg.LogLevel, yamllCfg.Limiter, cliCfg.Files...)
+
+			cfg.SetLogger()
+			logger = cfg.GetLogger()
+			cfg.LockFile = cliCfg.LockFile
+			cfg.NoLock = cliCfg.NoLock
+
+			explain, err := cfg.Explain(explainPath)
+			if err != nil {
+				logger.Error("errored explaining yaml path", slog.Any("err", err))
+				os.Exit(1)
+			}
+
+			if _, err = fmt.Fprint(writer, explain.RenderText()); err != nil {
+				return err
+			}
+
+			return nil
+		},
+	}
+
+	explainCommand.SilenceErrors = true
+	registerCommonFlags(explainCommand)
+
+	return explainCommand
+}
+
 func parseTraceTarget(target string) (string, string) {
 	rootFile, tracePath, found := strings.Cut(target, ":")
 	if !found {
@@ -331,10 +377,9 @@ yamll lock explain common/base.yaml -f path/to/root.yaml`,
 		PreRunE: setCLIClient,
 		RunE: func(_ *cobra.Command, _ []string) error {
 			cfg := yamll.New(false, yamllCfg.LogLevel, yamllCfg.Limiter, cliCfg.Files...)
+
 			cfg.SetLogger()
-
 			logger = cfg.GetLogger()
-
 			cfg.LockFile = cliCfg.LockFile
 			cfg.NoLock = cliCfg.NoLock
 
@@ -375,6 +420,7 @@ func getLockVerifyCommand() *cobra.Command {
 		PreRunE: setCLIClient,
 		RunE: func(_ *cobra.Command, _ []string) error {
 			cfg := yamll.New(false, yamllCfg.LogLevel, yamllCfg.Limiter, cliCfg.Files...)
+
 			cfg.SetLogger()
 			logger = cfg.GetLogger()
 			cfg.LockFile = cliCfg.LockFile
@@ -405,6 +451,7 @@ func getLockExplainCommand() *cobra.Command {
 		PreRunE: setCLIClient,
 		RunE: func(_ *cobra.Command, args []string) error {
 			cfg := yamll.New(false, yamllCfg.LogLevel, yamllCfg.Limiter, cliCfg.Files...)
+
 			cfg.SetLogger()
 			logger = cfg.GetLogger()
 			cfg.LockFile = cliCfg.LockFile
@@ -434,6 +481,7 @@ func getLintCommand() *cobra.Command {
 		PreRunE: setCLIClient,
 		RunE: func(_ *cobra.Command, _ []string) error {
 			cfg := yamll.New(false, yamllCfg.LogLevel, yamllCfg.Limiter, cliCfg.Files...)
+
 			cfg.SetLogger()
 			logger = cfg.GetLogger()
 			cfg.LockFile = cliCfg.LockFile
@@ -451,12 +499,17 @@ func getLintCommand() *cobra.Command {
 					file = "-"
 				}
 
-				if _, err = fmt.Fprintf(writer, "%s\t%s\t%s\n", issue.Code, file, issue.Message); err != nil {
+				severity := issue.Severity
+				if severity == "" {
+					severity = yamll.LintSeverityError
+				}
+
+				if _, err = fmt.Fprintf(writer, "%s\t%s\t%s\t%s\n", severity, issue.Code, file, issue.Message); err != nil {
 					return err
 				}
 			}
 
-			if len(report.Issues) != 0 {
+			if report.HasErrors() {
 				os.Exit(1)
 			}
 
