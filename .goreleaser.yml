@@ -13,12 +13,12 @@ builds:
       - -trimpath
     ldflags:
       - -s -w
-        -X github.com/nikhilsbhat/yamll/cmd.Version={{.Version}}
-        -X github.com/nikhilsbhat/yamll/cmd.Env={{.Env.BUILD_ENVIRONMENT}}
-        -X github.com/nikhilsbhat/yamll/cmd.BuildDate={{.Date}}
-        -X github.com/nikhilsbhat/yamll/cmd.Revision={{.Commit}}
-        -X github.com/nikhilsbhat/yamll/cmd.GoVersion={{.Env.GOVERSION}}
-        -X github.com/nikhilsbhat/yamll/cmd.Platform={{ .Os }}/{{ .Arch }}
+        -X github.com/nikhilsbhat/yamll/version.Version={{.Version}}
+        -X github.com/nikhilsbhat/yamll/version.Env={{.Env.BUILD_ENVIRONMENT}}
+        -X github.com/nikhilsbhat/yamll/version.BuildDate={{.Date}}
+        -X github.com/nikhilsbhat/yamll/version.Revision={{.Commit}}
+        -X github.com/nikhilsbhat/yamll/version.GoVersion={{.Env.GOVERSION}}
+        -X github.com/nikhilsbhat/yamll/version.Platform={{ .Os }}/{{ .Arch }}
     goos:
       - freebsd
       - windows
@@ -42,6 +42,7 @@ dockers:
     use: buildx
     skip_push: true
     extra_files:
+      - dist/yamll_linux_amd64_v1/yamll
       - dist/yamll_linux_arm64_v8.0/yamll
     image_templates:
       - "ghcr.io/nikhilsbhat/yamll:{{ .Tag }}"
