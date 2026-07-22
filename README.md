@@ -523,8 +523,9 @@ Yamll works with **any YAML**, whether it is Kubernetes, GitHub Actions, Docker 
 
 ## Documentation
 
-Updated documentation on all available commands and flags can be
-found [here](https://github.com/nikhilsbhat/yamll/blob/main/docs/doc/yamll.md).
+Detailed usage documentation is available at [nikhilsbhat.github.io/yamll](https://nikhilsbhat.github.io/yamll/).
+
+Generated command documentation is also available in the repository under [`docs/doc`](docs/doc/yamll.md).
 
 ## Examples
 
