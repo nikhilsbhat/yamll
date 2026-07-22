@@ -1,32 +1,65 @@
 # Yamll
 
-[![Go Report Card](https://goreportcard.com/badge/github.com/nikhilsbhat/yamll)](https://goreportcard.com/report/github.com/nikhilsbhat/yamll)
-[![shields](https://img.shields.io/badge/license-MIT-blue)](https://github.com/nikhilsbhat/yamll/blob/master/LICENSE)
-[![shields](https://godoc.org/github.com/nikhilsbhat/yamll?status.svg)](https://godoc.org/github.com/nikhilsbhat/yamll)
-[![shields](https://img.shields.io/github/v/tag/nikhilsbhat/yamll.svg)](https://github.com/nikhilsbhat/yamll/tags)
-[![shields](https://img.shields.io/github/downloads/nikhilsbhat/yamll/total.svg)](https://github.com/nikhilsbhat/yamll/releases)
+[![shields](https://img.shields.io/badge/license-MIT-blue)](https://github.com/nikhilsbhat/yamll/blob/main/LICENSE)
+[![pkg.go.dev](https://pkg.go.dev/badge/github.com/nikhilsbhat/yamll.svg)](https://pkg.go.dev/github.com/nikhilsbhat/yamll)
+[![GitHub Release](https://img.shields.io/github/v/tag/nikhilsbhat/yamll.svg)](https://github.com/nikhilsbhat/yamll/releases)
+[![Downloads](https://img.shields.io/github/downloads/nikhilsbhat/yamll/total.svg)](https://github.com/nikhilsbhat/yamll/releases)
 
-Yamll keeps shared YAML from turning into copy-paste drift.
-It resolves imports, expands anchors, and lets you trace every field back to where it came from.
+Stop copying the same YAML across repositories.
+
+**Yamll** is the dependency manager for YAML.
+
+Import, merge, trace, lint, and lock YAML configuration across local files, Git repositories, OCI registries, and HTTP sources.
+
+**Perfect for:**
+- Kubernetes manifests
+- Helm values
+- GitHub Actions
+- GoCD pipelines
+- Docker Compose
+- ArgoCD / GitOps
+- CI/CD pipelines
+- Shared application configuration
 
 ![Yamll terminal demo](docs/assets/yamll-terminal-demo.gif)
 
+## Highlights
+
+- 🚀 Import YAML from local files, Git, OCI, and HTTP
+- 🔍 Trace rendered values back to their source
+- 🌳 Visualize dependency graphs
+- 🔒 Lock remote imports for reproducible builds
+- ⚡  Detect configuration problems before deployment
+
 ## Why Yamll
 
-When the same config gets repeated across environments, changes start to drift.
-Yamll lets you define shared YAML once, import it from files, Git, HTTP, or OCI, and inspect the graph when something breaks.
+As YAML grows across repositories and environments, duplication becomes difficult to manage. A small change often means updating dozens of files manually, leading to configuration drift and hard-to-debug deployments.
 
-## Features
+Yamll lets you treat YAML like source code:
 
-- Merge multiple `YAML` files into one output
-- Resolve imports across local files, Git, HTTP, and OCI sources
-- Catch import cycles, duplicate keys, invalid anchors, and merge issues early
-- Trace rendered values back to their source file and line
-- Lock remote imports for reproducible builds
+- Import configuration from local files, Git repositories, OCI registries, and HTTP endpoints
+- Compose reusable configuration modules
+- Visualize dependency graphs
+- Trace rendered values back to their origin
+- Detect configuration problems before deployment
+- Lock remote dependencies for reproducible builds
+
+Instead of maintaining large monolithic YAML files or copying snippets between repositories, Yamll helps you build modular, reusable configuration.
+
+## When should I use Yamll?
+
+Use Yamll when you need to:
+
+- Reuse the same YAML safely across services, repositories, or environments
+- Understand where a rendered value came from and why it won
+- Keep remote YAML imports reproducible with lock files and checksums
+- Manage generic YAML, not only Kubernetes-specific manifests
 
 ## Quick Demo
 
 Start with one root file and one shared base:
+
+### root.yaml
 
 ```yaml
 # root.yaml
@@ -37,6 +70,8 @@ app:
   <<: *default
 ```
 
+### base.yaml
+
 ```yaml
 # internal/fixtures/base.yaml
 default: &default
@@ -46,23 +81,47 @@ default: &default
     name: base-config
 ```
 
-Build it:
+Render the final YAML.
 
 ```sh
-yamll import -f root.yaml
+yamll build -f root.yaml
 ```
 
-Then trace a value back to its origin:
+Output:
 
-```sh
+```yaml
+app:
+  name: api
+  apiVersion: v1
+  kind: ConfigMap
+  metadata:
+    name: base-config
+```
+
+Need to know where a value came from?
+
+```bash
 yamll trace root.yaml:app.metadata.name
 ```
 
-### Authentication
-- Pass credentials through `environment` variables and `yamll` will resolve them at runtime
-- Git imports support both `ssh` and `http` URLs
-- OCI imports work with registry-hosted config bundles and artifacts
-- All supported authentication parameters are defined [here](https://github.com/nikhilsbhat/yamll/blob/main/pkg/yamll/dependency.go#L34)
+Need to know why one value won over another?
+
+```bash
+yamll explain root.yaml:app.metadata.name
+```
+
+## Comparison
+
+| Capability                | Yamll | yq |  Helm   | Kustomize |
+|---------------------------|:-----:|:--:|:-------:|:---------:|
+| Import arbitrary YAML     |   ✅   | ❌  | Partial |     ❌     |
+| Merge YAML                |   ✅   | ✅  |    ✅    |     ✅     |
+| Dependency graph          |   ✅   | ❌  |    ❌    |     ❌     |
+| Trace rendered values     |   ✅   | ❌  |    ❌    |     ❌     |
+| Explain merge resolution  |   ✅   | ❌  |    ❌    |     ❌     |
+| Lock remote dependencies  |   ✅   | ❌  |    ❌    |     ❌     |
+| Generic YAML              |   ✅   | ✅  |    ❌    |     ❌     |
+| Kubernetes-specific       |   ❌   | ❌  |    ✅    |     ✅     |
 
 ## Installation
 
@@ -70,21 +129,21 @@ yamll trace root.yaml:app.metadata.name
 
 #### Homebrew
 
-Install latest version on `yamll` on `macOS`
+Install the latest version of `yamll` on `macOS`
 
 ```shell
-brew tap nikshilsbhat/stable git@github.com:nikhilsbhat/homebrew-stable.git
+brew tap nikhilsbhat/stable git@github.com:nikhilsbhat/homebrew-stable.git
 # for latest version
-brew install nikshilsbhat/stable/yamll
+brew install nikhilsbhat/stable/yamll
 # for specific version
-brew install nikshilsbhat/stable/yamll@0.0.3
+brew install nikhilsbhat/stable/yamll@0.0.3
 ```
 
 Check [repo](https://github.com/nikhilsbhat/homebrew-stable) for all available versions of the formula.
 
 #### Docker
 
-Latest version of docker images are published to [ghcr.io](https://github.com/nikhilsbhat/yamll/pkgs/container/yamll), all available images can be found there. </br>
+Docker images are published to [ghcr.io](https://github.com/nikhilsbhat/yamll/pkgs/container/yamll), and all available tags can be found there.
 
 ```bash
 docker pull ghcr.io/nikhilsbhat/yamll:latest
@@ -103,6 +162,19 @@ docker pull ghcr.io/nikhilsbhat/yamll:<github-release-tag>
     make local.build
     ```
 
+## Typical Use Cases
+
+Yamll is particularly useful for:
+
+- Splitting large Kubernetes manifests into reusable modules
+- Managing layered Helm values
+- Organizing GitHub Actions workflows
+- Reusing GoCD pipeline fragments
+- Sharing Docker Compose fragments
+- GitOps repositories
+- Multi-environment application configuration
+- Platform engineering and internal developer platforms
+
 ## Usage
 
 ### Basic Usage
@@ -110,7 +182,7 @@ docker pull ghcr.io/nikhilsbhat/yamll:<github-release-tag>
 Point `yamll` at your root YAML file and it pulls the graph together:
 
 ```sh
-yamll import -f import.yaml
+yamll build -f import.yaml
 ```
 
 ### Handling Imports
@@ -207,7 +279,7 @@ mysqldatabase: &mysqldatabase
   password: root
 ```
 
-Importing `root.yaml` should generate final yaml file as below
+Importing `root.yaml` generates the combined YAML stream below:
 
 ```yaml
 ---
@@ -262,9 +334,16 @@ config3:
 workflow: *mysqldatabase
 ```
 
-### Dependency Tree
+### Authentication
+- Pass credentials through `environment` variables and `yamll` will resolve them at runtime
+- Git imports support both `ssh` and `http` URLs
+- OCI imports work with registry-hosted config bundles and artifacts
+- All supported authentication parameters are defined [here](https://github.com/nikhilsbhat/yamll/blob/main/pkg/yamll/dependency.go#L34)
 
-Need the graph? `yamll tree` prints it like a filesystem tree.
+### Dependency Graph
+
+Visualize your dependency graph.
+`yamll tree` prints it like a filesystem tree.
 
 **Example**:
 
@@ -302,7 +381,8 @@ yamll tree -f import.yaml --output=mermaid
 
 ### Impact Analysis
 
-Need the blast radius? `yamll impact` walks the graph in reverse and shows every downstream file that depends on the target.
+See every file affected by a change.
+`yamll impact` walks the graph in reverse and shows every downstream file that depends on the target.
 
 **Example**:
 
@@ -335,10 +415,9 @@ yamll lint -f import.yaml
 
 Output includes a severity, rule code, file, and message. Error-level issues exit non-zero; warning-level dependency advisories are printed without failing the command.
 
-### Trace
+### Trace Rendered Values
 
-Need the origin of a rendered value?
-
+Trace any rendered value back to its source.
 `yamll trace` maps a generated YAML path back to the source file and line number, compiler-style.
 
 **Example**:
@@ -355,7 +434,7 @@ yamll trace -f internal/fixtures/import.yaml workflow.dbname
 origin: internal/fixtures/base5.yaml:2
 ```
 
-### Explain
+### Explain Resolution
 
 Need to know why a rendered value won?
 
@@ -393,7 +472,7 @@ resolution:
 merge rule: direct keys override merged values; root content is evaluated after imported anchors
 ```
 
-### Lock File
+### Reproducible Builds
 
 Remote imports are powerful, but drift. `yamll lock` records resolved commits and checksums, and future runs fail if the fetched content no longer matches the lock.
 
@@ -429,7 +508,34 @@ yamll import -f internal/fixtures/import.yaml --no-lock
 `yamll` detects and prevents import cycles. If an import cycle is detected, it will report an error and stop the merging
 process.
 
+## Why not Helm or Kustomize?
+
+Helm and Kustomize are excellent Kubernetes tools, but they are tightly coupled to the Kubernetes ecosystem.
+
+Yamll works with **any YAML**, whether it is Kubernetes, GitHub Actions, Docker Compose, CI/CD pipelines, application configuration, or custom formats.
+
+| Tool      | Primary Purpose                    |
+|-----------|------------------------------------|
+| Yamll     | Generic YAML dependency management |
+| Helm      | Kubernetes templating              |
+| Kustomize | Kubernetes overlays                |
+| yq        | YAML transformation                |
+
 ## Documentation
 
 Updated documentation on all available commands and flags can be
 found [here](https://github.com/nikhilsbhat/yamll/blob/main/docs/doc/yamll.md).
+
+## Examples
+
+Practical examples are available in the [`examples/`](examples/) directory. Each example includes a root file, shared imports, and a rendered `final.yaml`.
+
+- [Kubernetes](examples/kubernetes/deployment.yaml)
+- [GitHub Actions](examples/github-actions/ci.yaml)
+- [Docker Compose](examples/docker-compose/compose.yaml)
+- [Helm Values](examples/helm-values/values.yaml)
+- [ArgoCD](examples/argocd/application.yaml)
+- [GitOps](examples/gitops/prod.yaml)
+- [GoCD](examples/gocd/pipeline.yaml)
+
+Contributions and additional examples are always welcome.

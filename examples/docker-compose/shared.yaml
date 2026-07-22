@@ -1,0 +1,9 @@
+service_defaults: &service_defaults
+  restart: unless-stopped
+  networks:
+    - app
+  environment:
+    LOG_LEVEL: info
+    DATABASE_URL: postgres://payments:payments@postgres:5432/payments
+  depends_on:
+    - postgres

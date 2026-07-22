@@ -1,0 +1,14 @@
+workflow_defaults: &workflow_defaults
+  permissions:
+    contents: read
+    pull-requests: read
+
+go_test_job: &go_test_job
+  runs-on: ubuntu-latest
+  timeout-minutes: 15
+
+setup_go_step: &setup_go_step
+  uses: actions/setup-go@v5
+  with:
+    go-version: stable
+    cache: true

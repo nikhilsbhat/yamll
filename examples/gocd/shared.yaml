@@ -1,0 +1,28 @@
+pipeline_defaults: &pipeline_defaults
+  group: payments
+  label_template: "${COUNT}"
+  lock_behavior: unlockWhenFinished
+
+git_material: &git_material
+  git: https://github.com/example/payments-api.git
+  branch: main
+  shallow_clone: true
+
+go_job_defaults: &go_job_defaults
+  timeout: 15
+  elastic_profile_id: go-builder
+
+go_test_task: &go_test_task
+  exec:
+    command: make
+    arguments:
+      - test
+
+docker_build_task: &docker_build_task
+  exec:
+    command: docker
+    arguments:
+      - build
+      - --tag
+      - ghcr.io/example/payments-api:${GO_PIPELINE_LABEL}
+      - .

@@ -1,0 +1,25 @@
+environment:
+  name: production
+  cluster: prod-us-east-1
+  owner: platform-team
+applications:
+  payments-api:
+    namespace: payments
+    sync:
+      strategy: rolling
+      maxUnavailable: 1
+    alerts:
+      enabled: true
+      channel: payments-oncall
+    image: ghcr.io/example/payments-api:v1.4.2
+    replicas: 4
+  payments-worker:
+    namespace: payments
+    sync:
+      strategy: rolling
+      maxUnavailable: 1
+    alerts:
+      enabled: true
+      channel: payments-oncall
+    image: ghcr.io/example/payments-worker:v1.4.2
+    replicas: 2

@@ -1,0 +1,44 @@
+format_version: 10
+pipelines:
+  payments-api:
+    group: payments
+    label_template: ${COUNT}
+    lock_behavior: unlockWhenFinished
+    materials:
+      app:
+        git: https://github.com/example/payments-api.git
+        branch: main
+        shallow_clone: true
+    stages:
+      - build:
+          clean_workspace: true
+          jobs:
+            test:
+              timeout: 15
+              elastic_profile_id: go-builder
+              tasks:
+                - exec:
+                    command: make
+                    arguments:
+                      - test
+                - exec:
+                    command: make
+                    arguments:
+                      - build
+      - package:
+          jobs:
+            image:
+              timeout: 15
+              elastic_profile_id: go-builder
+              tasks:
+                - exec:
+                    command: docker
+                    arguments:
+                      - build
+                      - --tag
+                      - ghcr.io/example/payments-api:${GO_PIPELINE_LABEL}
+                      - .
+              artifacts:
+                - build:
+                    source: dist
+                    destination: artifacts

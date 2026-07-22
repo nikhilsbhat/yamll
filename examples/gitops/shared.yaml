@@ -1,0 +1,13 @@
+prod_environment: &prod_environment
+  name: production
+  cluster: prod-us-east-1
+  owner: platform-team
+
+application_defaults: &application_defaults
+  namespace: payments
+  sync:
+    strategy: rolling
+    maxUnavailable: 1
+  alerts:
+    enabled: true
+    channel: payments-oncall

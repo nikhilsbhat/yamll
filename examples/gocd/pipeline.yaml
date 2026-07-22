@@ -1,0 +1,31 @@
+##++examples/gocd/shared.yaml
+format_version: 10
+
+pipelines:
+  payments-api:
+    <<: *pipeline_defaults
+    materials:
+      app:
+        <<: *git_material
+    stages:
+      - build:
+          clean_workspace: true
+          jobs:
+            test:
+              <<: *go_job_defaults
+              tasks:
+                - <<: *go_test_task
+                - exec:
+                    command: make
+                    arguments:
+                      - build
+      - package:
+          jobs:
+            image:
+              <<: *go_job_defaults
+              tasks:
+                - <<: *docker_build_task
+              artifacts:
+                - build:
+                    source: dist
+                    destination: artifacts

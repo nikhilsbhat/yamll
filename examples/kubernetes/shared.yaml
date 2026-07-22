@@ -1,0 +1,25 @@
+app_metadata: &app_metadata
+  namespace: payments
+  labels:
+    app.kubernetes.io/name: payments-api
+    app.kubernetes.io/part-of: payments
+    app.kubernetes.io/managed-by: yamll
+
+pod_defaults: &pod_defaults
+  serviceAccountName: payments-api
+  securityContext:
+    runAsNonRoot: true
+    seccompProfile:
+      type: RuntimeDefault
+
+container_defaults: &container_defaults
+  ports:
+    - name: http
+      containerPort: 8080
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi

@@ -1,0 +1,23 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  namespace: argocd
+  labels:
+    app.kubernetes.io/managed-by: yamll
+    platform.example.com/team: payments
+  name: payments-api
+spec:
+  project: default
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: payments
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+  source:
+    repoURL: https://github.com/example/platform-config
+    targetRevision: main
+    path: apps/payments-api

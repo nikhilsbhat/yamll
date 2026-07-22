@@ -1,0 +1,26 @@
+##++examples/docker-compose/shared.yaml
+services:
+  api:
+    <<: *service_defaults
+    image: ghcr.io/example/payments-api:latest
+    ports:
+      - "8080:8080"
+  worker:
+    <<: *service_defaults
+    image: ghcr.io/example/payments-worker:latest
+    command:
+      - worker
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: payments
+      POSTGRES_USER: payments
+      POSTGRES_PASSWORD: payments
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+
+networks:
+  app: {}
+
+volumes:
+  postgres-data: {}

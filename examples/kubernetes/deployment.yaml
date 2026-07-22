@@ -1,0 +1,20 @@
+##++examples/kubernetes/shared.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  <<: *app_metadata
+  name: payments-api
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: payments-api
+  template:
+    metadata:
+      <<: *app_metadata
+    spec:
+      <<: *pod_defaults
+      containers:
+        - <<: *container_defaults
+          name: api
+          image: ghcr.io/example/payments-api:v1.4.2

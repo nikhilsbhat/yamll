@@ -1,0 +1,17 @@
+argocd_metadata: &argocd_metadata
+  namespace: argocd
+  labels:
+    app.kubernetes.io/managed-by: yamll
+    platform.example.com/team: payments
+
+argocd_spec: &argocd_spec
+  project: default
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: payments
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

@@ -1,0 +1,37 @@
+services:
+  api:
+    restart: unless-stopped
+    networks:
+      - app
+    environment:
+      LOG_LEVEL: info
+      DATABASE_URL: postgres://payments:payments@postgres:5432/payments
+    depends_on:
+      - postgres
+    image: ghcr.io/example/payments-api:latest
+    ports:
+      - 8080:8080
+  worker:
+    restart: unless-stopped
+    networks:
+      - app
+    environment:
+      LOG_LEVEL: info
+      DATABASE_URL: postgres://payments:payments@postgres:5432/payments
+    depends_on:
+      - postgres
+    image: ghcr.io/example/payments-worker:latest
+    command:
+      - worker
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: payments
+      POSTGRES_USER: payments
+      POSTGRES_PASSWORD: payments
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+networks:
+  app: {}
+volumes:
+  postgres-data: {}

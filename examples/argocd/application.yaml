@@ -1,0 +1,12 @@
+##++examples/argocd/shared.yaml
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  <<: *argocd_metadata
+  name: payments-api
+spec:
+  <<: *argocd_spec
+  source:
+    repoURL: https://github.com/example/platform-config
+    targetRevision: main
+    path: apps/payments-api

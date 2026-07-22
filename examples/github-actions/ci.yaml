@@ -1,0 +1,24 @@
+##++examples/github-actions/shared.yaml
+name: ci
+
+"on":
+  push:
+    branches:
+      - main
+  pull_request: {}
+
+<<: *workflow_defaults
+
+jobs:
+  test:
+    <<: *go_test_job
+    steps:
+      - uses: actions/checkout@v4
+      - <<: *setup_go_step
+      - run: go test ./...
+  lint:
+    <<: *go_test_job
+    steps:
+      - uses: actions/checkout@v4
+      - <<: *setup_go_step
+      - run: golangci-lint run

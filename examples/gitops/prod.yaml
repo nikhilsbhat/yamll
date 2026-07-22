@@ -1,0 +1,13 @@
+##++examples/gitops/shared.yaml
+environment:
+  <<: *prod_environment
+
+applications:
+  payments-api:
+    <<: *application_defaults
+    image: ghcr.io/example/payments-api:v1.4.2
+    replicas: 4
+  payments-worker:
+    <<: *application_defaults
+    image: ghcr.io/example/payments-worker:v1.4.2
+    replicas: 2
