@@ -24,12 +24,22 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
+    env:
+      PAGES_TOKEN: ${{ secrets.PAGES_TOKEN }}
     steps:
       - name: Checkout
         uses: actions/checkout@v6
 
       - name: Configure Pages
+        if: ${{ env.PAGES_TOKEN == '' }}
         uses: actions/configure-pages@v5
+
+      - name: Enable and configure Pages
+        if: ${{ env.PAGES_TOKEN != '' }}
+        uses: actions/configure-pages@v5
+        with:
+          enablement: true
+          token: ${{ env.PAGES_TOKEN }}
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v4
