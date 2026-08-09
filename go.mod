@@ -6,7 +6,7 @@ require (
 	dario.cat/mergo v1.0.2
 	github.com/a8m/envsubst v1.4.3
 	github.com/fatih/color v1.19.0
-	github.com/go-git/go-git/v5 v5.19.1
+	github.com/go-git/go-git/v5 v5.19.2
 	github.com/go-resty/resty/v2 v2.17.2
 	github.com/goccy/go-yaml v1.19.2
 	github.com/google/uuid v1.6.0
